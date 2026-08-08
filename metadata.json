@@ -1,0 +1,6 @@
+{
+  "name": "Поиск домашних животных",
+  "description": "Сервис поиска и возврата пропавших и найденных домашних животных с интерактивной картой, автомодерацией, защитой контактов и геоподпиской.",
+  "requestFramePermissions": ["geolocation"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
