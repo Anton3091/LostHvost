@@ -7,6 +7,9 @@ const getSystemDarkMode = () => window.matchMedia(colorSchemeQuery).matches;
 export const cartoTileUrl = (isDarkMode: boolean) =>
   `https://{s}.basemaps.cartocdn.com/rastertiles/${isDarkMode ? 'dark_all' : 'voyager'}/{z}/{x}/{y}{r}.png`;
 
+export const cartoPickerTileUrl = (isDarkMode: boolean) =>
+  `https://{s}.basemaps.cartocdn.com/rastertiles/${isDarkMode ? 'dark_all' : 'light_all'}/{z}/{x}/{y}{r}.png`;
+
 export function useSystemDarkMode() {
   const [isDarkMode, setIsDarkMode] = useState(getSystemDarkMode);
 

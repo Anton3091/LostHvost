@@ -4,7 +4,7 @@ import { ArrowLeft, ArrowRight, Upload, Trash2, MapPin, Sparkles, CheckCircle2, 
 import { motion, AnimatePresence } from 'motion/react';
 import { AdType, AdCategory } from '../types';
 import { CaptchaWidget } from './CaptchaWidget';
-import { cartoTileUrl, useSystemDarkMode } from '../theme';
+import { cartoPickerTileUrl, useSystemDarkMode } from '../theme';
 import { getCurrentLocation, isGeolocationPermissionDenied } from '../geolocation';
 
 interface CreateAdWizardProps {
@@ -139,7 +139,7 @@ export const CreateAdWizard: React.FC<CreateAdWizardProps> = ({
         zoomControl: false
       });
 
-      pickerTileLayer.current = L.tileLayer(cartoTileUrl(isDarkMode), {
+      pickerTileLayer.current = L.tileLayer(cartoPickerTileUrl(isDarkMode), {
         maxZoom: 19
       }).addTo(map);
 
@@ -171,7 +171,7 @@ export const CreateAdWizard: React.FC<CreateAdWizardProps> = ({
   }, [step, isDarkMode]);
 
   useEffect(() => {
-    pickerTileLayer.current?.setUrl(cartoTileUrl(isDarkMode));
+    pickerTileLayer.current?.setUrl(cartoPickerTileUrl(isDarkMode));
   }, [isDarkMode]);
 
   // Validation before next step
