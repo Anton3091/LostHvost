@@ -229,6 +229,7 @@ export const CreateAdWizard: React.FC<CreateAdWizardProps> = ({
       }
     } catch (err: any) {
       setError(err.message || 'Ошибка создания объявления');
+      setCaptchaToken('');
     } finally {
       setIsSubmitting(false);
     }
