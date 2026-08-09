@@ -266,67 +266,50 @@ export const MapView: React.FC<MapViewProps> = ({
     <div className="w-full max-w-4xl mx-auto px-4 py-4 space-y-5 text-slate-900 dark:text-slate-100">
       
       {/* SECTION 1: TOP NOTIFICATION SUBSCRIPTION BLOCK */}
-      <section className="liquid-glass p-5 rounded-3xl space-y-3.5 border border-white/80 dark:border-white/10 shadow-xl">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-2.5">
-            <div className="w-9 h-9 rounded-2xl bg-[#008E3A]/15 text-[#008E3A] flex items-center justify-center font-semibold">
-              <Bell className="w-5 h-5" />
+      <section className={`liquid-glass border border-white/80 dark:border-white/10 shadow-xl ${isSubMode ? 'p-5 rounded-3xl space-y-3.5' : 'p-3.5 rounded-2xl'}`}>
+        {!isSubMode ? (
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-xl bg-[#008E3A]/15 text-[#008E3A] flex items-center justify-center flex-shrink-0">
+              <Bell className="w-4 h-4" />
             </div>
-            <div>
-              <h2 className="text-sm font-bold text-slate-900 dark:text-slate-100 leading-tight">
-                Гео-подписка на уведомления
-              </h2>
-              <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">
-                Мгновенные оповещения о животных поблизости
+            <div className="min-w-0 flex-1">
+              <h2 className="text-sm font-bold text-slate-900 dark:text-slate-100 leading-tight">Гео-подписка</h2>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-snug truncate">
+                {geoSubscription?.isActive
+                  ? `Уведомления в радиусе ${geoSubscription.radius >= 1000 ? `${geoSubscription.radius / 1000} км` : `${geoSubscription.radius} м`}`
+                  : 'Настройте уведомления о животных поблизости'}
               </p>
             </div>
-          </div>
-
-          {geoSubscription?.isActive && !isSubMode && (
-            <span className="px-3 py-1 rounded-full text-[11px] font-bold bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 flex items-center space-x-1">
-              <Check className="w-3 h-3" />
-              <span>Активно ({geoSubscription.radius >= 1000 ? `${geoSubscription.radius / 1000} км` : `${geoSubscription.radius} м`})</span>
-            </span>
-          )}
-        </div>
-
-        {/* Subscription Control Form / Controls */}
-        {!isSubMode ? (
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-1">
-            <div className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
-              {geoSubscription?.isActive ? (
-                <span>
-                  Вы получаете уведомления о новых карточках в радиусе <strong className="text-[#008E3A]">{geoSubscription.radius >= 1000 ? `${geoSubscription.radius / 1000} км` : `${geoSubscription.radius} м`}</strong>.
-                </span>
-              ) : (
-                <span>
-                  Выберите центральную точку на карте и задайте любой радиус зоны уведомлений.
-                </span>
-              )}
-            </div>
-
-            <div className="flex items-center space-x-2 flex-shrink-0">
+            <button
+              onClick={toggleSubMode}
+              className="bg-[#008E3A] hover:bg-[#007A32] text-white text-xs font-semibold px-3 py-2 rounded-xl shadow-md shadow-emerald-700/20 transition active:scale-95 cursor-pointer flex items-center gap-1.5 flex-shrink-0"
+            >
+              {geoSubscription?.isActive && <Check className="w-3.5 h-3.5" />}
+              <span>{geoSubscription?.isActive ? 'Изменить' : 'Настроить'}</span>
+            </button>
+            {geoSubscription?.isActive && (
               <button
-                onClick={toggleSubMode}
-                className="bg-[#008E3A] hover:bg-[#007A32] text-white text-xs font-semibold px-4 py-2.5 rounded-2xl shadow-md shadow-emerald-700/20 transition active:scale-95 cursor-pointer flex items-center space-x-1.5"
+                onClick={onDeleteSubscription}
+                title="Отключить подписку"
+                aria-label="Отключить гео-подписку"
+                className="bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 p-2 rounded-xl transition cursor-pointer flex-shrink-0"
               >
-                <Bell className="w-3.5 h-3.5" />
-                <span>{geoSubscription?.isActive ? 'Изменить зону' : 'Настроить подписку'}</span>
+                <Trash2 className="w-4 h-4" />
               </button>
-
-              {geoSubscription?.isActive && (
-                <button
-                  onClick={onDeleteSubscription}
-                  title="Отключить подписку"
-                  className="bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 p-2.5 rounded-2xl text-xs transition cursor-pointer"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
-              )}
-            </div>
+            )}
           </div>
         ) : (
-          <div className="space-y-3.5 pt-2 bg-white/40 dark:bg-slate-800/40 p-4 rounded-2xl border border-white/50 dark:border-white/5">
+          <>
+            <div className="flex items-center space-x-2.5">
+              <div className="w-9 h-9 rounded-2xl bg-[#008E3A]/15 text-[#008E3A] flex items-center justify-center font-semibold">
+                <Bell className="w-5 h-5" />
+              </div>
+              <div>
+                <h2 className="text-sm font-bold text-slate-900 dark:text-slate-100 leading-tight">Гео-подписка на уведомления</h2>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">Настройте точку и радиус зоны</p>
+              </div>
+            </div>
+            <div className="space-y-3.5 pt-2 bg-white/40 dark:bg-slate-800/40 p-4 rounded-2xl border border-white/50 dark:border-white/5">
             <div className="flex items-center justify-between text-xs font-semibold text-slate-700 dark:text-slate-200">
               <div className="flex items-center space-x-1.5 text-[#008E3A]">
                 <MapPin className="w-4 h-4" />
@@ -387,7 +370,8 @@ export const MapView: React.FC<MapViewProps> = ({
                 Отмена
               </button>
             </div>
-          </div>
+            </div>
+          </>
         )}
       </section>
 
