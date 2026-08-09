@@ -188,13 +188,6 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
           <ChevronRight className="w-4 h-4 text-slate-400" />
         </button>
 
-        <div 
-          onClick={() => setShowDeleteModal(true)}
-          className="px-5 py-4 flex items-center space-x-2 text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/20 cursor-pointer transition"
-        >
-          <Trash2 className="w-4 h-4" />
-          <span className="font-semibold">Удалить аккаунт навсегда</span>
-        </div>
       </div>
 
       {/* Tabs Navigation */}
@@ -456,6 +449,16 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
           </div>
         </div>
       )}
+
+      <div className="pt-2 text-center">
+        <button
+          type="button"
+          onClick={() => setShowDeleteModal(true)}
+          className="text-[11px] text-slate-400 hover:text-rose-600 dark:text-slate-500 dark:hover:text-rose-400 transition cursor-pointer"
+        >
+          Удалить аккаунт
+        </button>
+      </div>
 
       {/* Password Change Modal */}
       {showPasswordModal && (
