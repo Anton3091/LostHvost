@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { CheckCircle2, ShieldCheck } from 'lucide-react';
+import { useSystemDarkMode } from '../theme';
 
 interface CaptchaWidgetProps {
   onVerify: (token: string) => void;
@@ -35,6 +36,7 @@ export const CaptchaWidget: React.FC<CaptchaWidgetProps> = ({
   isVerified,
   siteKey = ((import.meta as any).env?.VITE_YANDEX_SMARTCAPTCHA_SITE_KEY as string)
 }) => {
+  const isDarkMode = useSystemDarkMode();
   const containerRef = useRef<HTMLDivElement>(null);
   const widgetIdRef = useRef<string | null>(null);
   const [smartCaptchaLoaded, setSmartCaptchaLoaded] = useState(false);
@@ -122,7 +124,9 @@ export const CaptchaWidget: React.FC<CaptchaWidgetProps> = ({
       console.warn('Yandex SmartCaptcha render error:', err);
       setRenderError(true);
     }
-  }, [smartCaptchaLoaded, siteKey, onVerify]);
+  // SmartCaptcha gets its colors from the browser's color scheme when the
+  // dynamic scheme is enabled in Yandex Cloud. Recreate the iframe on change.
+  }, [smartCaptchaLoaded, siteKey, onVerify, isDarkMode]);
 
   useEffect(() => {
     if (!isVerified && widgetIdRef.current && window.smartCaptcha) {
