@@ -106,8 +106,8 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
   return (
     <div className="w-full max-w-4xl mx-auto p-4 sm:p-6 space-y-6">
       {/* Profile Header Bar */}
-      <div className="liquid-glass p-6 rounded-3xl shadow-lg flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 text-slate-900 dark:text-slate-100">
-        <div className="flex items-center space-x-3">
+      <div className="liquid-glass p-6 rounded-3xl shadow-lg flex items-center justify-between gap-4 text-slate-900 dark:text-slate-100">
+        <div className="min-w-0 flex items-center space-x-3">
           {user.avatarUrl ? (
             <img
               src={user.avatarUrl}
@@ -119,9 +119,9 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
               {user.name.charAt(0).toUpperCase()}
             </div>
           )}
-          <div>
-            <div className="flex items-center space-x-2">
-              <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100">{user.name}</h2>
+          <div className="min-w-0">
+            <div className="flex min-w-0 items-center space-x-2">
+              <h2 className="truncate text-lg font-bold text-slate-900 dark:text-slate-100">{user.name}</h2>
               {user.role === 'master' && (
                 <span className="bg-amber-100 text-amber-800 dark:bg-amber-950/80 dark:text-amber-300 text-[10px] font-extrabold px-2 py-0.5 rounded-md flex items-center space-x-1">
                   <ShieldCheck className="w-3 h-3" />
@@ -129,7 +129,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                 </span>
               )}
             </div>
-            <p className="text-xs text-slate-500 dark:text-slate-400">{user.email}</p>
+            <p className="truncate text-xs text-slate-500 dark:text-slate-400">{user.email}</p>
           </div>
         </div>
 
@@ -138,7 +138,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
           onClick={onLogout}
           title="Выйти"
           aria-label="Выйти из аккаунта"
-          className="w-9 h-9 liquid-glass-card hover:bg-rose-500/10 dark:hover:bg-rose-500/15 text-rose-500 rounded-full flex items-center justify-center transition-all duration-200 active:scale-95 cursor-pointer"
+          className="w-9 h-9 shrink-0 liquid-glass-card hover:bg-rose-500/10 dark:hover:bg-rose-500/15 text-rose-500 rounded-full flex items-center justify-center transition-all duration-200 active:scale-95 cursor-pointer"
         >
           <LogOut className="w-4 h-4" />
         </button>
