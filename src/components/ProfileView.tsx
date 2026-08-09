@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import {
   User as UserIcon,
-  Bell,
   Eye,
   Calendar,
   LogOut,
@@ -15,16 +14,16 @@ import {
   CheckCircle2,
   Lock,
   Unlock,
-  Activity
+  Activity,
+  ChevronRight
 } from 'lucide-react';
-import { User, AdItem, NotificationItem, SystemLog } from '../types';
+import { User, AdItem, SystemLog } from '../types';
 
 interface ProfileViewProps {
   user: User;
   onLogout: () => void;
   onDeleteAccount: () => Promise<void>;
   userAds: AdItem[];
-  notifications: NotificationItem[];
   onUnpublishAd: (adId: string) => Promise<void>;
   onPrefillCreateAd: (ad: AdItem) => void;
   onUpdateNotificationSettings: (push: boolean, email: boolean) => Promise<void>;
@@ -41,7 +40,6 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
   onLogout,
   onDeleteAccount,
   userAds,
-  notifications,
   onUnpublishAd,
   onPrefillCreateAd,
   onUpdateNotificationSettings,
@@ -51,7 +49,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
   onMasterUnblockUser,
   systemLogs = []
 }) => {
-  const [activeTab, setActiveTab] = useState<'ads' | 'notifs' | 'master' | 'logs'>('ads');
+  const [activeTab, setActiveTab] = useState<'ads' | 'master' | 'logs'>('ads');
 
   // Push & Email Settings state
   const [pushEnabled, setPushEnabled] = useState(user.notificationSettings?.push ?? true);
@@ -63,6 +61,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
   const [deleteLoading, setDeleteLoading] = useState(false);
 
   // Password change state
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [passForm, setPassForm] = useState({ oldPass: '', newPass: '' });
   const [passSuccess, setPassSuccess] = useState(false);
 
@@ -98,6 +97,12 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
     setPassSuccess(true); setTimeout(() => setPassSuccess(false), 2000); setPassForm({ oldPass: '', newPass: '' });
   };
 
+  const closePasswordModal = () => {
+    setShowPasswordModal(false);
+    setPassForm({ oldPass: '', newPass: '' });
+    setPassSuccess(false);
+  };
+
   return (
     <div className="w-full max-w-4xl mx-auto p-4 sm:p-6 space-y-6">
       {/* Profile Header Bar */}
@@ -129,11 +134,13 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
         </div>
 
         <button
+          type="button"
           onClick={onLogout}
-          className="liquid-glass-card hover:bg-slate-200/50 dark:hover:bg-slate-700/50 text-rose-500 font-medium px-4 py-2 rounded-2xl text-xs flex items-center space-x-1.5 transition-all duration-200 active:scale-95 cursor-pointer"
+          title="Выйти"
+          aria-label="Выйти из аккаунта"
+          className="w-9 h-9 liquid-glass-card hover:bg-rose-500/10 dark:hover:bg-rose-500/15 text-rose-500 rounded-full flex items-center justify-center transition-all duration-200 active:scale-95 cursor-pointer"
         >
-          <LogOut className="w-3.5 h-3.5" />
-          <span>Выйти</span>
+          <LogOut className="w-4 h-4" />
         </button>
       </div>
 
@@ -165,45 +172,21 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
           />
         </div>
 
-        <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-800 flex flex-col space-y-3">
-          <div className="flex items-center space-x-2 text-slate-800 dark:text-slate-200 font-semibold">
-            <Key className="w-4 h-4 text-slate-400" />
-            <span>Смена пароля</span>
-          </div>
-          <form onSubmit={handleChangePass} className="flex flex-col sm:flex-row gap-3">
-            <input
-              type="password"
-              required
-              placeholder="Текущий пароль"
-              value={passForm.oldPass}
-              onChange={e => setPassForm({ ...passForm, oldPass: e.target.value })}
-              className="flex-1 border border-slate-200 dark:border-slate-800 rounded-xl p-2 text-xs bg-slate-50 dark:bg-slate-800"
-            />
-            <input
-              type="password"
-              required
-              placeholder="Новый пароль"
-              value={passForm.newPass}
-              onChange={e => setPassForm({ ...passForm, newPass: e.target.value })}
-              className="flex-1 border border-slate-200 dark:border-slate-800 rounded-xl p-2 text-xs bg-slate-50 dark:bg-slate-800"
-            />
-            <button
-              type="submit"
-              className="bg-slate-800 dark:bg-slate-700 hover:bg-slate-900 text-white font-semibold px-4 py-2 rounded-xl text-xs transition cursor-pointer"
-            >
-              Обновить
-            </button>
-          </form>
-          {passSuccess && <span className="text-[11px] text-[#008E3A] font-semibold">Пароль успешно изменен</span>}
-        </div>
-
-        <div 
-          onClick={() => setShowDeleteModal(true)}
-          className="px-5 py-4 flex items-center space-x-2 text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/20 cursor-pointer transition"
+        <button
+          type="button"
+          onClick={() => setShowPasswordModal(true)}
+          className="w-full px-5 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between text-left hover:bg-slate-50 dark:hover:bg-slate-800/60 transition cursor-pointer"
         >
-          <Trash2 className="w-4 h-4" />
-          <span className="font-semibold">Удалить аккаунт навсегда</span>
-        </div>
+          <span className="flex items-center space-x-3">
+            <Key className="w-4 h-4 text-slate-400" />
+            <span className="flex flex-col">
+              <span className="font-semibold text-slate-800 dark:text-slate-200">Смена пароля</span>
+              <span className="text-[11px] text-slate-500">Безопасность аккаунта</span>
+            </span>
+          </span>
+          <ChevronRight className="w-4 h-4 text-slate-400" />
+        </button>
+
       </div>
 
       {/* Tabs Navigation */}
@@ -217,18 +200,6 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
           }`}
         >
           Мои объявления ({allAds.length})
-        </button>
-
-        <button
-          onClick={() => setActiveTab('notifs')}
-          className={`flex-1 py-2 px-3 rounded-xl transition cursor-pointer whitespace-nowrap flex items-center justify-center space-x-1 ${
-            activeTab === 'notifs'
-              ? 'bg-white dark:bg-slate-900 text-[#008E3A] font-bold shadow-sm'
-              : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
-          }`}
-        >
-          <Bell className="w-3.5 h-3.5" />
-          <span>Уведомления</span>
         </button>
 
         {user.role === 'master' && (
@@ -344,40 +315,6 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
         </div>
       )}
 
-      {/* TAB 2: Notifications Feed */}
-      {activeTab === 'notifs' && (
-        <div className="space-y-6">
-          {/* Notifications Feed */}
-          <div className="space-y-3">
-            <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">
-              История уведомлений
-            </h3>
-            {notifications.length === 0 ? (
-              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 rounded-2xl text-xs text-slate-400 text-center">
-                У вас нет новых уведомлений
-              </div>
-            ) : (
-              notifications.map(n => (
-                <div
-                  key={n.id}
-                  className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 rounded-xl shadow-sm space-y-1"
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-[#008E3A] dark:text-[#008E3A]">
-                      {n.title}
-                    </span>
-                    <span className="text-[10px] text-slate-400">
-                      {new Date(n.date).toLocaleString('ru-RU')}
-                    </span>
-                  </div>
-                  <p className="text-xs text-slate-700 dark:text-slate-300">{n.message}</p>
-                </div>
-              ))
-            )}
-          </div>
-        </div>
-      )}
-
       {/* TAB 5: Master Control Panel (Master account only) */}
       {activeTab === 'master' && user.role === 'master' && (
         <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 rounded-2xl shadow-sm space-y-4">
@@ -462,6 +399,64 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                 <p className="mt-0.5">{l.details}</p>
               </div>
             ))}
+          </div>
+        </div>
+      )}
+
+      <div className="pt-2 text-center">
+        <button
+          type="button"
+          onClick={() => setShowDeleteModal(true)}
+          className="text-[11px] text-slate-400 hover:text-rose-600 dark:text-slate-500 dark:hover:text-rose-400 transition cursor-pointer"
+        >
+          Удалить аккаунт
+        </button>
+      </div>
+
+      {/* Password Change Modal */}
+      {showPasswordModal && (
+        <div className="fixed inset-0 z-[2100] bg-slate-900/70 flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 w-full max-w-md rounded-2xl p-5 shadow-2xl space-y-4">
+            <div className="flex items-center space-x-2 text-slate-900 dark:text-slate-100">
+              <Key className="w-5 h-5 text-[#008E3A]" />
+              <h3 className="text-base font-bold">Смена пароля</h3>
+            </div>
+            <p className="text-xs text-slate-500 dark:text-slate-400">Введите текущий пароль и новый пароль длиной не менее 10 символов.</p>
+            <form onSubmit={handleChangePass} className="space-y-3">
+              <input
+                type="password"
+                required
+                placeholder="Текущий пароль"
+                value={passForm.oldPass}
+                onChange={e => setPassForm({ ...passForm, oldPass: e.target.value })}
+                className="w-full border border-slate-200 dark:border-slate-800 rounded-xl p-2.5 text-xs bg-slate-50 dark:bg-slate-800"
+              />
+              <input
+                type="password"
+                required
+                minLength={10}
+                placeholder="Новый пароль"
+                value={passForm.newPass}
+                onChange={e => setPassForm({ ...passForm, newPass: e.target.value })}
+                className="w-full border border-slate-200 dark:border-slate-800 rounded-xl p-2.5 text-xs bg-slate-50 dark:bg-slate-800"
+              />
+              {passSuccess && <p className="text-[11px] text-[#008E3A] font-semibold">Пароль успешно изменён</p>}
+              <div className="flex space-x-2 pt-1">
+                <button
+                  type="submit"
+                  className="flex-1 bg-[#008E3A] hover:bg-[#007A32] text-white font-semibold py-2.5 rounded-xl text-xs transition cursor-pointer"
+                >
+                  Обновить пароль
+                </button>
+                <button
+                  type="button"
+                  onClick={closePasswordModal}
+                  className="bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-semibold px-4 py-2.5 rounded-xl text-xs cursor-pointer"
+                >
+                  Отмена
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

@@ -4,6 +4,8 @@ import { ArrowLeft, ArrowRight, Upload, Trash2, MapPin, Sparkles, CheckCircle2, 
 import { motion, AnimatePresence } from 'motion/react';
 import { AdType, AdCategory } from '../types';
 import { CaptchaWidget } from './CaptchaWidget';
+import { cartoPickerTileUrl, useSystemDarkMode } from '../theme';
+import { getCurrentLocation, isGeolocationPermissionDenied } from '../geolocation';
 
 interface CreateAdWizardProps {
   onClose: () => void;
@@ -16,6 +18,7 @@ export const CreateAdWizard: React.FC<CreateAdWizardProps> = ({
   onSubmit,
   prefillData
 }) => {
+  const isDarkMode = useSystemDarkMode();
   const [step, setStep] = useState(1);
 
   // Form State
@@ -32,12 +35,14 @@ export const CreateAdWizard: React.FC<CreateAdWizardProps> = ({
 
   // Status & Error handling
   const [error, setError] = useState<string | null>(null);
+  const [locationLoading, setLocationLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [moderationResult, setModerationResult] = useState<'success' | 'pending' | 'rejected' | null>(null);
 
   // Map Picker Ref
   const pickerMapRef = useRef<HTMLDivElement>(null);
   const leafletPickerMap = useRef<L.Map | null>(null);
+  const pickerTileLayer = useRef<L.TileLayer | null>(null);
   const pickerMarker = useRef<L.Marker | null>(null);
 
   // Photo upload handler
@@ -103,25 +108,25 @@ export const CreateAdWizard: React.FC<CreateAdWizardProps> = ({
   };
 
   // Fetch Location Handler
-  const handleGetLocation = () => {
-    if ('geolocation' in navigator) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const { latitude, longitude } = position.coords;
-          setLat(latitude);
-          setLng(longitude);
-          if (leafletPickerMap.current && pickerMarker.current) {
-            leafletPickerMap.current.setView([latitude, longitude], 16);
-            pickerMarker.current.setLatLng([latitude, longitude]);
-          }
-        },
-        (error) => {
-          setError('Не удалось определить местоположение. Пожалуйста, разрешите доступ к геоданным или выберите точку вручную.');
-        },
-        { enableHighAccuracy: true }
+  const handleGetLocation = async () => {
+    setLocationLoading(true);
+    try {
+      const { coords: { latitude, longitude } } = await getCurrentLocation();
+      setLat(latitude);
+      setLng(longitude);
+      setError(null);
+      if (leafletPickerMap.current && pickerMarker.current) {
+        leafletPickerMap.current.setView([latitude, longitude], 16);
+        pickerMarker.current.setLatLng([latitude, longitude]);
+      }
+    } catch (locationError) {
+      setError(
+        isGeolocationPermissionDenied(locationError)
+          ? 'Нет доступа к геолокации. Разрешите местоположение для LostHvost в настройках PWA или браузера.'
+          : 'Не удалось определить местоположение. Проверьте GPS и подключение к интернету или выберите точку вручную.'
       );
-    } else {
-      setError('Геолокация не поддерживается вашим устройством.');
+    } finally {
+      setLocationLoading(false);
     }
   };
 
@@ -134,7 +139,7 @@ export const CreateAdWizard: React.FC<CreateAdWizardProps> = ({
         zoomControl: false
       });
 
-      L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+      pickerTileLayer.current = L.tileLayer(cartoPickerTileUrl(isDarkMode), {
         maxZoom: 19
       }).addTo(map);
 
@@ -163,7 +168,11 @@ export const CreateAdWizard: React.FC<CreateAdWizardProps> = ({
 
       leafletPickerMap.current = map;
     }
-  }, [step]);
+  }, [step, isDarkMode]);
+
+  useEffect(() => {
+    pickerTileLayer.current?.setUrl(cartoPickerTileUrl(isDarkMode));
+  }, [isDarkMode]);
 
   // Validation before next step
   const validateAndNext = () => {
@@ -482,10 +491,11 @@ export const CreateAdWizard: React.FC<CreateAdWizardProps> = ({
               <button
                 type="button"
                 onClick={handleGetLocation}
-                className="w-full flex items-center justify-center space-x-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 py-2.5 rounded-xl transition text-xs font-semibold cursor-pointer"
+                disabled={locationLoading}
+                className="w-full flex items-center justify-center space-x-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 py-2.5 rounded-xl transition text-xs font-semibold cursor-pointer disabled:opacity-60 disabled:cursor-wait"
               >
-                <MapPin className="w-4 h-4" />
-                <span>Использовать мое текущее местоположение</span>
+                <MapPin className={`w-4 h-4 ${locationLoading ? 'animate-pulse' : ''}`} />
+                <span>{locationLoading ? 'Определяем местоположение…' : 'Использовать моё текущее местоположение'}</span>
               </button>
 
               <div className="relative w-full h-56 rounded-xl overflow-hidden border border-slate-200 dark:border-slate-800">
