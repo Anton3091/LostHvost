@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { ShieldCheck, RefreshCw, CheckCircle2, Cloud } from 'lucide-react';
+import { CheckCircle2, Cloud } from 'lucide-react';
 
 interface CaptchaWidgetProps {
   onVerify: (token: string) => void;
@@ -27,17 +27,13 @@ declare global {
   }
 }
 
-// Default Cloudflare Turnstile testing sitekey (Always Passes)
-const DEFAULT_SITE_KEY = '1x00000000000000000000AA';
-
 export const CaptchaWidget: React.FC<CaptchaWidgetProps> = ({
   onVerify,
   isVerified,
-  siteKey = ((import.meta as any).env?.VITE_CLOUDFLARE_TURNSTILE_SITE_KEY as string) || DEFAULT_SITE_KEY
+  siteKey = ((import.meta as any).env?.VITE_CLOUDFLARE_TURNSTILE_SITE_KEY as string)
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const widgetIdRef = useRef<string | null>(null);
-  const [loading, setLoading] = useState(false);
   const [turnstileLoaded, setTurnstileLoaded] = useState(false);
   const [renderError, setRenderError] = useState(false);
 
@@ -84,9 +80,16 @@ export const CaptchaWidget: React.FC<CaptchaWidgetProps> = ({
         sitekey: siteKey,
         theme: isDark ? 'dark' : 'light',
         callback: (token: string) => {
-          onVerify(token || 'cf_token_' + Date.now());
+          if (token) {
+            setRenderError(false);
+            onVerify(token);
+          } else {
+            onVerify('');
+            setRenderError(true);
+          }
         },
         'error-callback': () => {
+          onVerify('');
           setRenderError(true);
         },
         'expired-callback': () => {
@@ -109,15 +112,7 @@ export const CaptchaWidget: React.FC<CaptchaWidgetProps> = ({
     };
   }, [turnstileLoaded, siteKey, isVerified, onVerify]);
 
-  // Fallback interactive verification trigger for iframe/sandboxed environments
-  const handleFallbackClick = () => {
-    if (isVerified || loading) return;
-    setLoading(true);
-    setTimeout(() => {
-      setLoading(false);
-      onVerify('cf_turnstile_verified_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7));
-    }, 600);
-  };
+  useEffect(() => { if (!siteKey) setRenderError(true); }, [siteKey]);
 
   return (
     <div className="liquid-glass-card rounded-2xl p-3.5 border border-slate-200/80 dark:border-slate-800 flex flex-col space-y-2 select-none shadow-sm">
@@ -129,10 +124,7 @@ export const CaptchaWidget: React.FC<CaptchaWidgetProps> = ({
       {/* Interactive Fallback or Backup UI if Turnstile script is loading or rendered */}
       {(renderError || !turnstileLoaded || isVerified) && (
         <div className="flex items-center justify-between">
-          <button
-            type="button"
-            onClick={handleFallbackClick}
-            disabled={isVerified || loading}
+          <div
             className="flex items-center space-x-3 text-left focus:outline-none group cursor-pointer"
           >
             <div
@@ -142,9 +134,7 @@ export const CaptchaWidget: React.FC<CaptchaWidgetProps> = ({
                   : 'border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 group-hover:border-[#008E3A]'
               }`}
             >
-              {loading ? (
-                <RefreshCw className="w-4 h-4 text-[#008E3A] animate-spin" />
-              ) : isVerified ? (
+              {isVerified ? (
                 <CheckCircle2 className="w-5 h-5 text-white" />
               ) : (
                 <div className="w-2.5 h-2.5 rounded-sm bg-transparent group-hover:bg-[#008E3A]/30 transition" />
@@ -153,13 +143,13 @@ export const CaptchaWidget: React.FC<CaptchaWidgetProps> = ({
 
             <div>
               <p className="text-xs font-semibold text-slate-800 dark:text-slate-200">
-                {isVerified ? 'Защита от ботов пройдена' : 'Я не робот (Cloudflare Turnstile)'}
+                {isVerified ? 'Защита от ботов пройдена' : 'Проверка безопасности недоступна'}
               </p>
               <p className="text-[10px] text-slate-500 dark:text-slate-400">
                 Проверка безопасности от спама
               </p>
             </div>
-          </button>
+          </div>
 
           <div className="flex items-center space-x-1 text-slate-400 dark:text-slate-500 text-[10px] font-semibold pl-2">
             <Cloud className="w-3.5 h-3.5 text-[#F38020]" />

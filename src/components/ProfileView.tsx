@@ -28,6 +28,7 @@ interface ProfileViewProps {
   onUnpublishAd: (adId: string) => Promise<void>;
   onPrefillCreateAd: (ad: AdItem) => void;
   onUpdateNotificationSettings: (push: boolean, email: boolean) => Promise<void>;
+  onChangePassword: (currentPassword: string, newPassword: string) => Promise<void>;
   // Master methods
   masterUsersList?: User[];
   onMasterBlockUser?: (targetUserId: string, blockUntil?: string) => Promise<void>;
@@ -44,6 +45,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
   onUnpublishAd,
   onPrefillCreateAd,
   onUpdateNotificationSettings,
+  onChangePassword,
   masterUsersList = [],
   onMasterBlockUser,
   onMasterUnblockUser,
@@ -75,8 +77,8 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
     return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
   });
 
-  const handleSaveSettings = async () => {
-    await onUpdateNotificationSettings(pushEnabled, emailEnabled);
+  const handleSaveSettings = async (push: boolean, email: boolean) => {
+    await onUpdateNotificationSettings(push, email);
     setSettingsSaved(true);
     setTimeout(() => setSettingsSaved(false), 2000);
   };
@@ -90,11 +92,10 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
     }
   };
 
-  const handleChangePass = (e: React.FormEvent) => {
+  const handleChangePass = async (e: React.FormEvent) => {
     e.preventDefault();
-    setPassSuccess(true);
-    setTimeout(() => setPassSuccess(false), 2000);
-    setPassForm({ oldPass: '', newPass: '' });
+    await onChangePassword(passForm.oldPass, passForm.newPass);
+    setPassSuccess(true); setTimeout(() => setPassSuccess(false), 2000); setPassForm({ oldPass: '', newPass: '' });
   };
 
   return (
@@ -138,7 +139,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
           <input
             type="checkbox"
             checked={pushEnabled}
-            onChange={e => { setPushEnabled(e.target.checked); handleSaveSettings(); }}
+            onChange={e => { const value = e.target.checked; setPushEnabled(value); handleSaveSettings(value, emailEnabled); }}
             className="w-5 h-5 rounded text-[#008E3A] focus:ring-[#008E3A] cursor-pointer"
           />
         </div>
@@ -151,7 +152,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
           <input
             type="checkbox"
             checked={emailEnabled}
-            onChange={e => { setEmailEnabled(e.target.checked); handleSaveSettings(); }}
+            onChange={e => { const value = e.target.checked; setEmailEnabled(value); handleSaveSettings(pushEnabled, value); }}
             className="w-5 h-5 rounded text-[#008E3A] focus:ring-[#008E3A] cursor-pointer"
           />
         </div>

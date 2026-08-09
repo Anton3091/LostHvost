@@ -1,0 +1,14 @@
+allowBuilds:
+  '@google/genai': true
+  argon2: true
+  better-sqlite3: true
+  esbuild: true
+  protobufjs: true
+  sharp: true
+onlyBuiltDependencies:
+  - '@google/genai'
+  - argon2
+  - better-sqlite3
+  - esbuild
+  - protobufjs
+  - sharp

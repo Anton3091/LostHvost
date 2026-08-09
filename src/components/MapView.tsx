@@ -1,6 +1,6 @@
-import React, { useEffect, useRef, useState, useMemo } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import L from 'leaflet';
-import { Locate, Bell, Check, Trash2, MapPin, Search, Filter, ChevronRight, Sparkles, SlidersHorizontal } from 'lucide-react';
+import { Locate, Bell, Check, Trash2, MapPin, ChevronRight, Settings, X } from 'lucide-react';
 import { PublicAdItem, GeoSubscription } from '../types';
 
 interface MapViewProps {
@@ -33,14 +33,10 @@ export const MapView: React.FC<MapViewProps> = ({
 
   // Default subscription radius set to 10 km (10000 m) as requested
   const [isSubMode, setIsSubMode] = useState(false);
+  const [locationHelpOpen, setLocationHelpOpen] = useState(false);
   const [subLat, setSubLat] = useState<number>(geoSubscription?.lat || 55.751244);
   const [subLng, setSubLng] = useState<number>(geoSubscription?.lng || 37.598418);
   const [subRadius, setSubRadius] = useState<number>(geoSubscription?.radius || 10000);
-
-  // Pet List Filters
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState<'all' | 'cat' | 'dog' | 'other'>('all');
-  const [selectedType, setSelectedType] = useState<'all' | 'lost' | 'found'>('all');
 
   // Initialize Leaflet Map
   useEffect(() => {
@@ -55,6 +51,8 @@ export const MapView: React.FC<MapViewProps> = ({
       zoom: 11,
       zoomControl: false
     });
+
+    map.attributionControl.setPrefix(false);
 
     // CartoDB Voyager Tile Layer for clean aesthetic map
     L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
@@ -198,36 +196,44 @@ export const MapView: React.FC<MapViewProps> = ({
       return;
     }
 
+    const applyLocation = (pos: GeolocationPosition) => {
+      const { latitude, longitude } = pos.coords;
+      if (!leafletMap.current) return;
+      leafletMap.current.flyTo([latitude, longitude], 13);
+      if (userGpsMarker.current) leafletMap.current.removeLayer(userGpsMarker.current);
+      const gpsIcon = L.divIcon({
+        className: 'pulse-gps-marker',
+        iconSize: [18, 18],
+        iconAnchor: [9, 9]
+      });
+      userGpsMarker.current = L.marker([latitude, longitude], { icon: gpsIcon }).addTo(leafletMap.current);
+      if (isSubMode) {
+        setSubLat(latitude);
+        setSubLng(longitude);
+      }
+    };
+
+    const showLocationError = (error: GeolocationPositionError) => {
+      if (error.code === 1) {
+        setLocationHelpOpen(true);
+      } else if (error.code === 3) {
+        alert('Определение геопозиции заняло слишком много времени. Проверьте GPS и подключение к интернету.');
+      } else {
+        setLocationHelpOpen(true);
+      }
+    };
+
     navigator.geolocation.getCurrentPosition(
-      pos => {
-        const { latitude, longitude } = pos.coords;
-        if (leafletMap.current) {
-          leafletMap.current.flyTo([latitude, longitude], 13);
-
-          if (userGpsMarker.current) {
-            leafletMap.current.removeLayer(userGpsMarker.current);
-          }
-
-          const gpsIcon = L.divIcon({
-            className: 'pulse-gps-marker',
-            iconSize: [18, 18],
-            iconAnchor: [9, 9]
-          });
-
-          userGpsMarker.current = L.marker([latitude, longitude], { icon: gpsIcon }).addTo(
-            leafletMap.current
-          );
-
-          if (isSubMode) {
-            setSubLat(latitude);
-            setSubLng(longitude);
-          }
-        }
+      applyLocation,
+      error => {
+        if (error.code === 1) return showLocationError(error);
+        navigator.geolocation.getCurrentPosition(applyLocation, showLocationError, {
+          enableHighAccuracy: false,
+          timeout: 20000,
+          maximumAge: 300000
+        });
       },
-      err => {
-        alert('Не удалось определить текущую геопозицию.');
-      },
-      { enableHighAccuracy: true }
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
     );
   };
 
@@ -248,22 +254,6 @@ export const MapView: React.FC<MapViewProps> = ({
     onSaveSubscription(subLat, subLng, subRadius);
     setIsSubMode(false);
   };
-
-  // Filtered Pets List
-  const filteredAds = useMemo(() => {
-    return ads.filter(ad => {
-      const matchesSearch =
-        !searchQuery ||
-        (ad.petName && ad.petName.toLowerCase().includes(searchQuery.toLowerCase())) ||
-        ad.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        ad.contactName.toLowerCase().includes(searchQuery.toLowerCase());
-
-      const matchesCategory = selectedCategory === 'all' || ad.category === selectedCategory;
-      const matchesType = selectedType === 'all' || ad.type === selectedType;
-
-      return matchesSearch && matchesCategory && matchesType;
-    });
-  }, [ads, searchQuery, selectedCategory, selectedType]);
 
   return (
     <div className="w-full max-w-4xl mx-auto px-4 py-4 space-y-5 text-slate-900 dark:text-slate-100">
@@ -434,7 +424,7 @@ export const MapView: React.FC<MapViewProps> = ({
                 Питомцы на карте
               </h3>
               <span className="px-2.5 py-0.5 rounded-full bg-[#008E3A]/15 text-[#008E3A] text-xs font-bold">
-                {filteredAds.length}
+                {ads.length}
               </span>
             </div>
             <span className="text-[11px] text-slate-400 font-medium">
@@ -442,92 +432,10 @@ export const MapView: React.FC<MapViewProps> = ({
             </span>
           </div>
 
-          {/* Search bar & Quick Category Pills */}
-          <div className="space-y-2.5">
-            <div className="relative">
-              <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={e => setSearchQuery(e.target.value)}
-                placeholder="Поиск по кличке, описанию, городу..."
-                className="w-full liquid-glass-card pl-10 pr-4 py-2.5 rounded-2xl text-xs text-slate-800 dark:text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#008E3A]"
-              />
-            </div>
-
-            {/* Category and Status Filter Chips */}
-            <div className="flex items-center space-x-2 overflow-x-auto pb-1 scrollbar-none text-xs">
-              {/* Type Filter */}
-              <button
-                onClick={() => setSelectedType('all')}
-                className={`px-3 py-1.5 rounded-full font-semibold transition flex-shrink-0 cursor-pointer ${
-                  selectedType === 'all'
-                    ? 'bg-[#008E3A] text-white shadow-sm'
-                    : 'liquid-glass-card text-slate-600 dark:text-slate-300 hover:bg-white'
-                }`}
-              >
-                Все типы
-              </button>
-              <button
-                onClick={() => setSelectedType('lost')}
-                className={`px-3 py-1.5 rounded-full font-semibold transition flex-shrink-0 cursor-pointer ${
-                  selectedType === 'lost'
-                    ? 'bg-[#FF9500] text-white shadow-sm'
-                    : 'liquid-glass-card text-slate-600 dark:text-slate-300 hover:bg-white'
-                }`}
-              >
-                Потерялись
-              </button>
-              <button
-                onClick={() => setSelectedType('found')}
-                className={`px-3 py-1.5 rounded-full font-semibold transition flex-shrink-0 cursor-pointer ${
-                  selectedType === 'found'
-                    ? 'bg-[#34C759] text-white shadow-sm'
-                    : 'liquid-glass-card text-slate-600 dark:text-slate-300 hover:bg-white'
-                }`}
-              >
-                Найдены
-              </button>
-
-              <span className="text-slate-300 dark:text-slate-700">|</span>
-
-              {/* Category Filter */}
-              <button
-                onClick={() => setSelectedCategory('all')}
-                className={`px-3 py-1.5 rounded-full font-semibold transition flex-shrink-0 cursor-pointer ${
-                  selectedCategory === 'all'
-                    ? 'bg-slate-800 text-white dark:bg-slate-200 dark:text-slate-900 shadow-sm'
-                    : 'liquid-glass-card text-slate-600 dark:text-slate-300 hover:bg-white'
-                }`}
-              >
-                Все виды
-              </button>
-              <button
-                onClick={() => setSelectedCategory('cat')}
-                className={`px-3 py-1.5 rounded-full font-semibold transition flex-shrink-0 cursor-pointer ${
-                  selectedCategory === 'cat'
-                    ? 'bg-slate-800 text-white dark:bg-slate-200 dark:text-slate-900 shadow-sm'
-                    : 'liquid-glass-card text-slate-600 dark:text-slate-300 hover:bg-white'
-                }`}
-              >
-                🐱 Кошки
-              </button>
-              <button
-                onClick={() => setSelectedCategory('dog')}
-                className={`px-3 py-1.5 rounded-full font-semibold transition flex-shrink-0 cursor-pointer ${
-                  selectedCategory === 'dog'
-                    ? 'bg-slate-800 text-white dark:bg-slate-200 dark:text-slate-900 shadow-sm'
-                    : 'liquid-glass-card text-slate-600 dark:text-slate-300 hover:bg-white'
-                }`}
-              >
-                🐶 Собаки
-              </button>
-            </div>
-          </div>
         </div>
 
         {/* Pet Cards List */}
-        {filteredAds.length === 0 ? (
+        {ads.length === 0 ? (
           <div className="liquid-glass p-8 rounded-3xl text-center space-y-2">
             <p className="text-sm font-semibold text-slate-600 dark:text-slate-300">
               Питомцы не найдены
@@ -538,7 +446,7 @@ export const MapView: React.FC<MapViewProps> = ({
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
-            {filteredAds.map(ad => {
+            {ads.map(ad => {
               const isLost = ad.type === 'lost';
               return (
                 <div
@@ -597,6 +505,41 @@ export const MapView: React.FC<MapViewProps> = ({
           </div>
         )}
       </section>
+
+      {locationHelpOpen && (
+        <div className="fixed inset-0 z-[2400] flex items-center justify-center bg-slate-950/45 backdrop-blur-sm p-4">
+          <div className="relative w-full max-w-sm rounded-3xl bg-white dark:bg-slate-900 p-5 shadow-2xl space-y-4 animate-[app-rise_260ms_cubic-bezier(0.22,1,0.36,1)_both]">
+            <button
+              type="button"
+              onClick={() => setLocationHelpOpen(false)}
+              className="absolute right-4 top-4 w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-500"
+              aria-label="Закрыть"
+            >
+              <X className="w-4 h-4" />
+            </button>
+            <div className="w-11 h-11 rounded-2xl bg-[#008E3A]/15 text-[#008E3A] flex items-center justify-center">
+              <Settings className="w-5 h-5" />
+            </div>
+            <div className="space-y-1.5 pr-8">
+              <h3 className="text-base font-bold">Разрешите доступ к геопозиции</h3>
+              <p className="text-xs leading-relaxed text-slate-500 dark:text-slate-400">
+                Системные настройки нельзя открыть с веб-страницы автоматически. Включите геолокацию и разрешите её для LostHvost или браузера.
+              </p>
+            </div>
+            <div className="space-y-2 text-xs text-slate-700 dark:text-slate-300">
+              <p><strong>iPhone:</strong> Настройки → Конфиденциальность и безопасность → Службы геолокации → Safari Websites или LostHvost → При использовании.</p>
+              <p><strong>Android:</strong> Настройки → Приложения → LostHvost или браузер → Разрешения → Местоположение.</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setLocationHelpOpen(false)}
+              className="w-full h-11 rounded-2xl bg-[#008E3A] text-white text-sm font-semibold"
+            >
+              Понятно
+            </button>
+          </div>
+        </div>
+      )}
 
     </div>
   );

@@ -3,13 +3,15 @@ import { X, Lock, Mail, User, ShieldCheck, AlertCircle, Sparkles } from 'lucide-
 import { motion, AnimatePresence } from 'motion/react';
 import { CaptchaWidget } from './CaptchaWidget';
 import { User as UserType } from '../types';
+import yandexIdLogo from '../assets/images/yandex-id-logo.svg';
 
 interface AuthModalProps {
   onClose: () => void;
   onLoginSuccess: (user: UserType) => void;
   onLoginApi: (email: string, pass: string, captchaToken: string) => Promise<UserType>;
   onRegisterApi: (email: string, pass: string, name: string, captchaToken: string) => Promise<UserType>;
-  onYandexApi: (captchaToken: string) => Promise<UserType>;
+  onRecoveryApi: (email: string, captchaToken: string) => Promise<void>;
+  onYandexApi: () => Promise<void>;
 }
 
 export const AuthModal: React.FC<AuthModalProps> = ({
@@ -17,6 +19,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   onLoginSuccess,
   onLoginApi,
   onRegisterApi,
+  onRecoveryApi,
   onYandexApi
 }) => {
   const [mode, setMode] = useState<'login' | 'register' | 'recovery'>('login');
@@ -24,6 +27,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   // Fields
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [name, setName] = useState('');
   const [consent, setConsent] = useState(false);
   const [captchaToken, setCaptchaToken] = useState('');
@@ -37,6 +41,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     e.preventDefault();
     if (mode === 'register' && !consent) {
       setError('Вы должны дать согласие на обработку персональных данных');
+      return;
+    }
+
+    if (mode === 'register' && password !== confirmPassword) {
+      setError('Пароли не совпадают');
       return;
     }
 
@@ -58,26 +67,22 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         onLoginSuccess(user);
         onClose();
       } else if (mode === 'recovery') {
+        await onRecoveryApi(email, captchaToken);
         setRecoverySuccess(true);
       }
     } catch (err: any) {
       setError(err.message || 'Ошибка авторизации');
+      setCaptchaToken('');
     } finally {
       setLoading(false);
     }
   };
 
   const handleYandexLogin = async () => {
-    if (!captchaToken) {
-      setError('Пройдите проверку CAPTCHA перед входом через Яндекс ID');
-      return;
-    }
     setLoading(true);
     setError(null);
     try {
-      const user = await onYandexApi(captchaToken);
-      onLoginSuccess(user);
-      onClose();
+      await onYandexApi();
     } catch (err: any) {
       setError(err.message || 'Ошибка входа через Яндекс ID');
     } finally {
@@ -199,6 +204,26 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             )}
 
             {mode === 'register' && (
+              <div className="space-y-1">
+                <label className="text-xs font-medium text-slate-700 dark:text-slate-300">
+                  Повторите пароль
+                </label>
+                <div className="relative">
+                  <Lock className="w-4 h-4 absolute left-3 top-3 text-slate-400" />
+                  <input
+                    type="password"
+                    required
+                    value={confirmPassword}
+                    onChange={e => setConfirmPassword(e.target.value)}
+                    placeholder="••••••••"
+                    autoComplete="new-password"
+                    className="w-full border border-slate-200 dark:border-slate-800 rounded-xl p-2.5 pl-9 text-xs bg-slate-50 dark:bg-slate-800"
+                  />
+                </div>
+              </div>
+            )}
+
+            {mode === 'register' && (
               <label className="flex items-start space-x-2.5 text-xs text-slate-600 dark:text-slate-300 cursor-pointer py-1 select-none">
                 <input
                   type="checkbox"
@@ -221,7 +246,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             <button
               type="submit"
               disabled={loading || !captchaToken || (mode === 'register' && !consent)}
-              className="w-full bg-[#008E3A] hover:bg-[#007A32] disabled:opacity-50 text-white font-semibold py-3 rounded-2xl text-xs shadow-md shadow-emerald-700/20 transition cursor-pointer"
+              className="w-full h-11 bg-[#008E3A] hover:bg-[#007A32] disabled:opacity-50 text-white font-semibold rounded-xl text-sm shadow-md shadow-emerald-700/20 transition cursor-pointer"
             >
               {loading
                 ? 'Загрузка...'
@@ -237,10 +262,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               <button
                 type="button"
                 onClick={handleYandexLogin}
-                className="w-full border border-rose-200/80 dark:border-rose-900/60 bg-rose-50/60 dark:bg-rose-950/20 hover:bg-rose-100/60 text-rose-700 dark:text-rose-300 font-semibold py-3 rounded-2xl text-xs flex items-center justify-center space-x-2 transition cursor-pointer"
+                disabled={loading}
+                className="w-full h-11 border border-black bg-black hover:bg-[#1f1f1f] disabled:opacity-50 text-white font-medium rounded-xl text-sm flex items-center justify-center gap-2.5 transition cursor-pointer"
               >
-                <span className="font-bold text-rose-600 font-serif text-sm">Я</span>
-                <span>Войти через Яндекс ID</span>
+                <img src={yandexIdLogo} alt="" aria-hidden="true" className="w-6 h-6" />
+                <span>Войти с Яндекс ID</span>
               </button>
             )}
           </form>
@@ -251,13 +277,13 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           {mode === 'login' ? (
             <>
               <button
-                onClick={() => { setMode('recovery'); setError(null); }}
+                onClick={() => { setMode('recovery'); setError(null); setCaptchaToken(''); }}
                 className="hover:underline cursor-pointer"
               >
                 Забыли пароль?
               </button>
               <button
-                onClick={() => { setMode('register'); setError(null); }}
+                onClick={() => { setMode('register'); setError(null); setCaptchaToken(''); }}
                 className="text-[#008E3A] font-semibold hover:underline cursor-pointer"
               >
                 Регистрация
@@ -265,7 +291,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             </>
           ) : (
             <button
-              onClick={() => { setMode('login'); setError(null); }}
+              onClick={() => { setMode('login'); setError(null); setCaptchaToken(''); }}
               className="text-[#008E3A] font-semibold hover:underline cursor-pointer mx-auto"
             >
               Уже есть аккаунт? Войти

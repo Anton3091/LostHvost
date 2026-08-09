@@ -1,0 +1,43 @@
+services:
+  app:
+    build:
+      context: .
+      args:
+        VITE_CLOUDFLARE_TURNSTILE_SITE_KEY: ${TURNSTILE_SITE_KEY}
+    restart: unless-stopped
+    env_file: .env
+    volumes:
+      - app_data:/app/data
+    networks: [losthvost]
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/health/ready').then(r=>{if(!r.ok)process.exit(1)})"]
+      interval: 20s
+      timeout: 5s
+      retries: 10
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "5" }
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    depends_on:
+      app:
+        condition: service_healthy
+    ports: ["80:80", "443:443"]
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    networks: [losthvost]
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "5" }
+
+networks:
+  losthvost:
+
+volumes:
+  app_data:
+  caddy_data:
+  caddy_config:

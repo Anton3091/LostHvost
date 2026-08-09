@@ -26,7 +26,11 @@ export const BottomNav: React.FC<BottomNavProps> = ({
           onClick={() => onNavigate('map')}
           className="flex items-center space-x-3 cursor-pointer select-none active:scale-95 transition"
         >
-          <img src={appIcon} alt="Logo" className="w-10 h-10 rounded-2xl shadow-md shadow-emerald-700/20 object-cover" />
+          <img
+            src={appIcon}
+            alt="LostHvost"
+            className="w-10 h-10 rounded-2xl shadow-md shadow-emerald-700/20 object-cover"
+          />
           <div>
             <h1 className="text-sm font-bold text-slate-900 dark:text-slate-100 tracking-tight leading-none">
               Поиск потеряшек
