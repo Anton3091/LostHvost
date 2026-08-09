@@ -15,7 +15,8 @@ import {
   CheckCircle2,
   Lock,
   Unlock,
-  Activity
+  Activity,
+  ChevronRight
 } from 'lucide-react';
 import { User, AdItem, NotificationItem, SystemLog } from '../types';
 
@@ -63,6 +64,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
   const [deleteLoading, setDeleteLoading] = useState(false);
 
   // Password change state
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [passForm, setPassForm] = useState({ oldPass: '', newPass: '' });
   const [passSuccess, setPassSuccess] = useState(false);
 
@@ -96,6 +98,12 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
     e.preventDefault();
     await onChangePassword(passForm.oldPass, passForm.newPass);
     setPassSuccess(true); setTimeout(() => setPassSuccess(false), 2000); setPassForm({ oldPass: '', newPass: '' });
+  };
+
+  const closePasswordModal = () => {
+    setShowPasswordModal(false);
+    setPassForm({ oldPass: '', newPass: '' });
+    setPassSuccess(false);
   };
 
   return (
@@ -165,37 +173,20 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
           />
         </div>
 
-        <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-800 flex flex-col space-y-3">
-          <div className="flex items-center space-x-2 text-slate-800 dark:text-slate-200 font-semibold">
+        <button
+          type="button"
+          onClick={() => setShowPasswordModal(true)}
+          className="w-full px-5 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between text-left hover:bg-slate-50 dark:hover:bg-slate-800/60 transition cursor-pointer"
+        >
+          <span className="flex items-center space-x-3">
             <Key className="w-4 h-4 text-slate-400" />
-            <span>Смена пароля</span>
-          </div>
-          <form onSubmit={handleChangePass} className="flex flex-col sm:flex-row gap-3">
-            <input
-              type="password"
-              required
-              placeholder="Текущий пароль"
-              value={passForm.oldPass}
-              onChange={e => setPassForm({ ...passForm, oldPass: e.target.value })}
-              className="flex-1 border border-slate-200 dark:border-slate-800 rounded-xl p-2 text-xs bg-slate-50 dark:bg-slate-800"
-            />
-            <input
-              type="password"
-              required
-              placeholder="Новый пароль"
-              value={passForm.newPass}
-              onChange={e => setPassForm({ ...passForm, newPass: e.target.value })}
-              className="flex-1 border border-slate-200 dark:border-slate-800 rounded-xl p-2 text-xs bg-slate-50 dark:bg-slate-800"
-            />
-            <button
-              type="submit"
-              className="bg-slate-800 dark:bg-slate-700 hover:bg-slate-900 text-white font-semibold px-4 py-2 rounded-xl text-xs transition cursor-pointer"
-            >
-              Обновить
-            </button>
-          </form>
-          {passSuccess && <span className="text-[11px] text-[#008E3A] font-semibold">Пароль успешно изменен</span>}
-        </div>
+            <span className="flex flex-col">
+              <span className="font-semibold text-slate-800 dark:text-slate-200">Смена пароля</span>
+              <span className="text-[11px] text-slate-500">Безопасность аккаунта</span>
+            </span>
+          </span>
+          <ChevronRight className="w-4 h-4 text-slate-400" />
+        </button>
 
         <div 
           onClick={() => setShowDeleteModal(true)}
@@ -462,6 +453,54 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                 <p className="mt-0.5">{l.details}</p>
               </div>
             ))}
+          </div>
+        </div>
+      )}
+
+      {/* Password Change Modal */}
+      {showPasswordModal && (
+        <div className="fixed inset-0 z-[2100] bg-slate-900/70 flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 w-full max-w-md rounded-2xl p-5 shadow-2xl space-y-4">
+            <div className="flex items-center space-x-2 text-slate-900 dark:text-slate-100">
+              <Key className="w-5 h-5 text-[#008E3A]" />
+              <h3 className="text-base font-bold">Смена пароля</h3>
+            </div>
+            <p className="text-xs text-slate-500 dark:text-slate-400">Введите текущий пароль и новый пароль длиной не менее 10 символов.</p>
+            <form onSubmit={handleChangePass} className="space-y-3">
+              <input
+                type="password"
+                required
+                placeholder="Текущий пароль"
+                value={passForm.oldPass}
+                onChange={e => setPassForm({ ...passForm, oldPass: e.target.value })}
+                className="w-full border border-slate-200 dark:border-slate-800 rounded-xl p-2.5 text-xs bg-slate-50 dark:bg-slate-800"
+              />
+              <input
+                type="password"
+                required
+                minLength={10}
+                placeholder="Новый пароль"
+                value={passForm.newPass}
+                onChange={e => setPassForm({ ...passForm, newPass: e.target.value })}
+                className="w-full border border-slate-200 dark:border-slate-800 rounded-xl p-2.5 text-xs bg-slate-50 dark:bg-slate-800"
+              />
+              {passSuccess && <p className="text-[11px] text-[#008E3A] font-semibold">Пароль успешно изменён</p>}
+              <div className="flex space-x-2 pt-1">
+                <button
+                  type="submit"
+                  className="flex-1 bg-[#008E3A] hover:bg-[#007A32] text-white font-semibold py-2.5 rounded-xl text-xs transition cursor-pointer"
+                >
+                  Обновить пароль
+                </button>
+                <button
+                  type="button"
+                  onClick={closePasswordModal}
+                  className="bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-semibold px-4 py-2.5 rounded-xl text-xs cursor-pointer"
+                >
+                  Отмена
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
