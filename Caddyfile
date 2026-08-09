@@ -8,6 +8,8 @@ losthvost.ru, www.losthvost.ru {
     -Server
   }
   @sensitive path /api/* /health/*
+  @serviceWorker path /sw.js
   header @sensitive Cache-Control "no-store"
+  header @serviceWorker Cache-Control "no-cache"
   reverse_proxy app:3000
 }

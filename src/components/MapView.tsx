@@ -3,6 +3,7 @@ import L from 'leaflet';
 import { Locate, Bell, Check, Trash2, MapPin, ChevronRight, Settings, X } from 'lucide-react';
 import { PublicAdItem, GeoSubscription } from '../types';
 import { cartoTileUrl, useSystemDarkMode } from '../theme';
+import { getCurrentLocation, isGeolocationPermissionDenied } from '../geolocation';
 
 interface MapViewProps {
   ads: PublicAdItem[];
@@ -38,6 +39,7 @@ export const MapView: React.FC<MapViewProps> = ({
   // Default subscription radius set to 10 km (10000 m) as requested
   const [isSubMode, setIsSubMode] = useState(false);
   const [locationHelpOpen, setLocationHelpOpen] = useState(false);
+  const [locationLoading, setLocationLoading] = useState(false);
   const [subLat, setSubLat] = useState<number>(geoSubscription?.lat || 55.751244);
   const [subLng, setSubLng] = useState<number>(geoSubscription?.lng || 37.598418);
   const [subRadius, setSubRadius] = useState<number>(geoSubscription?.radius || 10000);
@@ -197,12 +199,8 @@ export const MapView: React.FC<MapViewProps> = ({
   }, [isSubMode, subLat, subLng, subRadius, geoSubscription]);
 
   // Geolocation trigger
-  const handleGetLocation = () => {
-    if (!navigator.geolocation) {
-      alert('Геолокация не поддерживается вашим браузером');
-      return;
-    }
-
+  const handleGetLocation = async () => {
+    setLocationLoading(true);
     const applyLocation = (pos: GeolocationPosition) => {
       const { latitude, longitude } = pos.coords;
       if (!leafletMap.current) return;
@@ -220,28 +218,19 @@ export const MapView: React.FC<MapViewProps> = ({
       }
     };
 
-    const showLocationError = (error: GeolocationPositionError) => {
-      if (error.code === 1) {
+    try {
+      applyLocation(await getCurrentLocation());
+    } catch (error) {
+      if (isGeolocationPermissionDenied(error)) {
         setLocationHelpOpen(true);
-      } else if (error.code === 3) {
-        alert('Определение геопозиции заняло слишком много времени. Проверьте GPS и подключение к интернету.');
+      } else if (error instanceof Error && error.message === 'GEOLOCATION_UNSUPPORTED') {
+        alert('Геолокация не поддерживается вашим устройством.');
       } else {
-        setLocationHelpOpen(true);
+        alert('Не удалось определить местоположение. Проверьте GPS и подключение к интернету и повторите попытку.');
       }
-    };
-
-    navigator.geolocation.getCurrentPosition(
-      applyLocation,
-      error => {
-        if (error.code === 1) return showLocationError(error);
-        navigator.geolocation.getCurrentPosition(applyLocation, showLocationError, {
-          enableHighAccuracy: false,
-          timeout: 20000,
-          maximumAge: 300000
-        });
-      },
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
-    );
+    } finally {
+      setLocationLoading(false);
+    }
   };
 
   const toggleSubMode = () => {
@@ -396,11 +385,14 @@ export const MapView: React.FC<MapViewProps> = ({
         {/* Floating Controls Overlay (Top-Right) */}
         <div className="absolute top-3.5 right-3.5 z-[1000] flex flex-col space-y-2">
           <button
+            type="button"
             onClick={handleGetLocation}
-            title="Мое местоположение"
-            className="w-10 h-10 liquid-glass text-slate-800 dark:text-slate-100 rounded-full flex items-center justify-center hover:scale-105 active:scale-95 transition shadow-md cursor-pointer"
+            disabled={locationLoading}
+            title={locationLoading ? 'Определяем местоположение' : 'Моё местоположение'}
+            aria-label={locationLoading ? 'Определяем местоположение' : 'Моё местоположение'}
+            className="w-10 h-10 liquid-glass text-slate-800 dark:text-slate-100 rounded-full flex items-center justify-center hover:scale-105 active:scale-95 transition shadow-md cursor-pointer disabled:opacity-60 disabled:cursor-wait"
           >
-            <Locate className="w-4 h-4 text-[#008E3A]" />
+            <Locate className={`w-4 h-4 text-[#008E3A] ${locationLoading ? 'animate-pulse' : ''}`} />
           </button>
         </div>
       </section>
