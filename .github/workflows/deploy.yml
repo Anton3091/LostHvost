@@ -21,7 +21,7 @@ jobs:
       DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
       DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
       DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
-      SSH_KEY: ${{ runner.temp }}/deploy_key
+      SSH_KEY: /tmp/losthvost_deploy_key
 
     steps:
       - name: Checkout
