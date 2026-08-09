@@ -103,9 +103,17 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
       {/* Profile Header Bar */}
       <div className="liquid-glass p-6 rounded-3xl shadow-lg flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 text-slate-900 dark:text-slate-100">
         <div className="flex items-center space-x-3">
-          <div className="w-12 h-12 rounded-2xl bg-[#008E3A] text-white flex items-center justify-center font-bold text-lg shadow-md shadow-emerald-700/20">
-            {user.name.charAt(0).toUpperCase()}
-          </div>
+          {user.avatarUrl ? (
+            <img
+              src={user.avatarUrl}
+              alt={`Аватар ${user.name}`}
+              className="w-12 h-12 rounded-2xl object-cover shadow-md shadow-emerald-700/20"
+            />
+          ) : (
+            <div className="w-12 h-12 rounded-2xl bg-[#008E3A] text-white flex items-center justify-center font-bold text-lg shadow-md shadow-emerald-700/20">
+              {user.name.charAt(0).toUpperCase()}
+            </div>
+          )}
           <div>
             <div className="flex items-center space-x-2">
               <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100">{user.name}</h2>

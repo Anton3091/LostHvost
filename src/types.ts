@@ -8,6 +8,7 @@ export interface User {
   email: string;
   name: string;
   role: UserRole;
+  avatarUrl: string | null;
   isBlocked: boolean;
   blockUntil?: string | null; // ISO date string if temporary block
   authProvider: 'email' | 'yandex';
