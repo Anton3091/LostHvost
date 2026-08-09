@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   User as UserIcon,
   Bell,
@@ -53,10 +53,16 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
 }) => {
   const [activeTab, setActiveTab] = useState<'ads' | 'notifs' | 'master' | 'logs'>('ads');
 
-  // Push & Email Settings state
-  const [pushEnabled, setPushEnabled] = useState(user.notificationSettings?.push ?? true);
-  const [emailEnabled, setEmailEnabled] = useState(user.notificationSettings?.email ?? true);
+  const pushPermissionGranted = () => typeof Notification !== 'undefined' && Notification.permission === 'granted';
+  const [pushEnabled, setPushEnabled] = useState(() => Boolean(user.notificationSettings?.push) && pushPermissionGranted());
+  const [emailEnabled, setEmailEnabled] = useState(() => Boolean(user.notificationSettings?.email));
   const [settingsSaved, setSettingsSaved] = useState(false);
+  const [settingsUpdating, setSettingsUpdating] = useState(false);
+
+  useEffect(() => {
+    setPushEnabled(Boolean(user.notificationSettings?.push) && pushPermissionGranted());
+    setEmailEnabled(Boolean(user.notificationSettings?.email));
+  }, [user.notificationSettings?.email, user.notificationSettings?.push]);
 
   // Account Deletion Modal
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -78,9 +84,18 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
   });
 
   const handleSaveSettings = async (push: boolean, email: boolean) => {
-    await onUpdateNotificationSettings(push, email);
-    setSettingsSaved(true);
-    setTimeout(() => setSettingsSaved(false), 2000);
+    setSettingsUpdating(true);
+    try {
+      await onUpdateNotificationSettings(push, email);
+      setSettingsSaved(true);
+      setTimeout(() => setSettingsSaved(false), 2000);
+      return true;
+    } catch (error) {
+      alert(error instanceof Error ? error.message : 'Не удалось изменить настройки уведомлений');
+      return false;
+    } finally {
+      setSettingsUpdating(false);
+    }
   };
 
   const handleConfirmDelete = async () => {
@@ -147,7 +162,8 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
           <input
             type="checkbox"
             checked={pushEnabled}
-            onChange={e => { const value = e.target.checked; setPushEnabled(value); handleSaveSettings(value, emailEnabled); }}
+            disabled={settingsUpdating}
+            onChange={async e => { const value = e.target.checked; if (await handleSaveSettings(value, emailEnabled)) setPushEnabled(value); }}
             className="w-5 h-5 rounded text-[#008E3A] focus:ring-[#008E3A] cursor-pointer"
           />
         </div>
@@ -160,7 +176,8 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
           <input
             type="checkbox"
             checked={emailEnabled}
-            onChange={e => { const value = e.target.checked; setEmailEnabled(value); handleSaveSettings(pushEnabled, value); }}
+            disabled={settingsUpdating}
+            onChange={async e => { const value = e.target.checked; if (await handleSaveSettings(pushEnabled, value)) setEmailEnabled(value); }}
             className="w-5 h-5 rounded text-[#008E3A] focus:ring-[#008E3A] cursor-pointer"
           />
         </div>
