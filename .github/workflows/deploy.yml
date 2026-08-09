@@ -1,0 +1,114 @@
+name: Deploy production
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: losthvost-production
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    environment: production
+    env:
+      DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+      DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+      DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
+      SSH_KEY: ${{ runner.temp }}/deploy_key
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure SSH
+        env:
+          DEPLOY_SSH_PRIVATE_KEY: ${{ secrets.DEPLOY_SSH_PRIVATE_KEY }}
+          DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+        run: |
+          set -euo pipefail
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$DEPLOY_SSH_PRIVATE_KEY" > "$SSH_KEY"
+          chmod 600 "$SSH_KEY"
+          printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/known_hosts
+
+      - name: Check server prerequisites
+        run: |
+          set -euo pipefail
+          ssh -i "$SSH_KEY" -o IdentitiesOnly=yes "$DEPLOY_USER@$DEPLOY_HOST" \
+            "set -eu; test -d '$DEPLOY_PATH'; test -s '$DEPLOY_PATH/.env'; sudo -n docker version >/dev/null; sudo -n docker compose version >/dev/null"
+
+      - name: Sync application files
+        run: |
+          set -euo pipefail
+          rsync -az --delete \
+            -e "ssh -i $SSH_KEY -o IdentitiesOnly=yes" \
+            --exclude='.env' \
+            --exclude='.git/' \
+            --exclude='.github/' \
+            --exclude='.pnpm-store/' \
+            --exclude='node_modules/' \
+            --exclude='dist/' \
+            --exclude='.DS_Store' \
+            --exclude='._*' \
+            ./ "$DEPLOY_USER@$DEPLOY_HOST:$DEPLOY_PATH/"
+
+      - name: Build and activate release
+        env:
+          RELEASE_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          ssh -i "$SSH_KEY" -o IdentitiesOnly=yes "$DEPLOY_USER@$DEPLOY_HOST" \
+            "DEPLOY_PATH='$DEPLOY_PATH' RELEASE_SHA='$RELEASE_SHA' bash -s" <<'REMOTE'
+          set -euo pipefail
+          cd "$DEPLOY_PATH"
+
+          sudo sh scripts/backup.sh
+          sudo docker compose config --quiet
+
+          app_image=$(sudo docker compose config --images | head -n 1)
+          previous_image=$(sudo docker compose images -q app | head -n 1)
+          rollback_tag="losthvost-rollback:${RELEASE_SHA}"
+
+          if [ -n "$previous_image" ]; then
+            sudo docker tag "$previous_image" "$rollback_tag"
+          fi
+
+          rollback() {
+            if [ -n "$previous_image" ]; then
+              echo "Release failed, restoring image $previous_image" >&2
+              sudo docker tag "$rollback_tag" "$app_image"
+              sudo docker compose up -d --no-build --force-recreate app caddy
+            fi
+          }
+          trap rollback ERR
+
+          sudo docker compose build app
+          sudo docker compose up -d --remove-orphans
+
+          ready=0
+          for attempt in $(seq 1 30); do
+            if sudo docker compose exec -T app node -e \
+              "fetch('http://127.0.0.1:3000/health/ready').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"; then
+              ready=1
+              break
+            fi
+            sleep 2
+          done
+          test "$ready" -eq 1
+
+          curl --fail --silent --show-error --retry 5 --retry-delay 2 \
+            https://losthvost.ru/health/ready >/dev/null
+
+          trap - ERR
+          sudo docker image rm "$rollback_tag" >/dev/null 2>&1 || true
+          sudo docker image prune -f >/dev/null
+          sudo docker compose ps
+          REMOTE
