@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import {
   User as UserIcon,
-  Bell,
   Eye,
   Calendar,
   LogOut,
@@ -18,14 +17,13 @@ import {
   Activity,
   ChevronRight
 } from 'lucide-react';
-import { User, AdItem, NotificationItem, SystemLog } from '../types';
+import { User, AdItem, SystemLog } from '../types';
 
 interface ProfileViewProps {
   user: User;
   onLogout: () => void;
   onDeleteAccount: () => Promise<void>;
   userAds: AdItem[];
-  notifications: NotificationItem[];
   onUnpublishAd: (adId: string) => Promise<void>;
   onPrefillCreateAd: (ad: AdItem) => void;
   onUpdateNotificationSettings: (push: boolean, email: boolean) => Promise<void>;
@@ -42,7 +40,6 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
   onLogout,
   onDeleteAccount,
   userAds,
-  notifications,
   onUnpublishAd,
   onPrefillCreateAd,
   onUpdateNotificationSettings,
@@ -52,7 +49,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
   onMasterUnblockUser,
   systemLogs = []
 }) => {
-  const [activeTab, setActiveTab] = useState<'ads' | 'notifs' | 'master' | 'logs'>('ads');
+  const [activeTab, setActiveTab] = useState<'ads' | 'master' | 'logs'>('ads');
 
   // Push & Email Settings state
   const [pushEnabled, setPushEnabled] = useState(user.notificationSettings?.push ?? true);
@@ -203,18 +200,6 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
           Мои объявления ({allAds.length})
         </button>
 
-        <button
-          onClick={() => setActiveTab('notifs')}
-          className={`flex-1 py-2 px-3 rounded-xl transition cursor-pointer whitespace-nowrap flex items-center justify-center space-x-1 ${
-            activeTab === 'notifs'
-              ? 'bg-white dark:bg-slate-900 text-[#008E3A] font-bold shadow-sm'
-              : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
-          }`}
-        >
-          <Bell className="w-3.5 h-3.5" />
-          <span>Уведомления</span>
-        </button>
-
         {user.role === 'master' && (
           <>
             <button
@@ -325,40 +310,6 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
               );
             })
           )}
-        </div>
-      )}
-
-      {/* TAB 2: Notifications Feed */}
-      {activeTab === 'notifs' && (
-        <div className="space-y-6">
-          {/* Notifications Feed */}
-          <div className="space-y-3">
-            <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">
-              История уведомлений
-            </h3>
-            {notifications.length === 0 ? (
-              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 rounded-2xl text-xs text-slate-400 text-center">
-                У вас нет новых уведомлений
-              </div>
-            ) : (
-              notifications.map(n => (
-                <div
-                  key={n.id}
-                  className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 rounded-xl shadow-sm space-y-1"
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-[#008E3A] dark:text-[#008E3A]">
-                      {n.title}
-                    </span>
-                    <span className="text-[10px] text-slate-400">
-                      {new Date(n.date).toLocaleString('ru-RU')}
-                    </span>
-                  </div>
-                  <p className="text-xs text-slate-700 dark:text-slate-300">{n.message}</p>
-                </div>
-              ))
-            )}
-          </div>
         </div>
       )}
 
