@@ -134,11 +134,13 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
         </div>
 
         <button
+          type="button"
           onClick={onLogout}
-          className="liquid-glass-card hover:bg-slate-200/50 dark:hover:bg-slate-700/50 text-rose-500 font-medium px-4 py-2 rounded-2xl text-xs flex items-center space-x-1.5 transition-all duration-200 active:scale-95 cursor-pointer"
+          title="Выйти"
+          aria-label="Выйти из аккаунта"
+          className="w-9 h-9 liquid-glass-card hover:bg-rose-500/10 dark:hover:bg-rose-500/15 text-rose-500 rounded-full flex items-center justify-center transition-all duration-200 active:scale-95 cursor-pointer"
         >
-          <LogOut className="w-3.5 h-3.5" />
-          <span>Выйти</span>
+          <LogOut className="w-4 h-4" />
         </button>
       </div>
 
