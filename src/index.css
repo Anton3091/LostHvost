@@ -1,6 +1,69 @@
 @import "tailwindcss";
 @import "leaflet/dist/leaflet.css";
 
+html {
+  touch-action: manipulation;
+  overscroll-behavior: none;
+}
+
+body {
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+}
+
+@media (max-width: 767px) {
+  input,
+  textarea,
+  select {
+    font-size: 16px !important;
+  }
+}
+
+@keyframes app-rise {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes app-header-in {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.app-shell > header {
+  animation: app-header-in 360ms cubic-bezier(0.22, 1, 0.36, 1) backwards;
+}
+
+.app-shell > main {
+  animation: app-rise 420ms 70ms cubic-bezier(0.22, 1, 0.36, 1) backwards;
+}
+
+.liquid-glass-card {
+  transition: transform 220ms ease, box-shadow 220ms ease, background-color 220ms ease;
+}
+
+button {
+  transition: transform 160ms ease, opacity 160ms ease, background-color 160ms ease, box-shadow 160ms ease;
+}
+
+button:active {
+  transform: scale(0.97);
+}
+
+@media (hover: hover) {
+  .liquid-glass-card:hover {
+    transform: translateY(-2px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
 /* Apple Liquid Glass Utility Classes */
 .liquid-glass {
   background: rgba(255, 255, 255, 0.75);
@@ -102,5 +165,3 @@
     box-shadow: 0 0 0 0 rgba(0, 142, 58, 0);
   }
 }
-
-

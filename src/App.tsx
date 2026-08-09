@@ -7,359 +7,101 @@ import { AuthModal } from './components/AuthModal';
 import { BottomNav } from './components/BottomNav';
 import { PublicAdItem, User, GeoSubscription, NotificationItem, AdItem, SystemLog } from './types';
 
+async function jsonFetch(url: string, options?: RequestInit) {
+  const response = await fetch(url, options);
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(data.error || 'Сервер временно недоступен');
+  return data;
+}
+
+function urlBase64ToUint8Array(value: string) {
+  const padded = (value + '='.repeat((4 - value.length % 4) % 4)).replace(/-/g, '+').replace(/_/g, '/');
+  return Uint8Array.from(atob(padded), char => char.charCodeAt(0));
+}
+
 export default function App() {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [authReady, setAuthReady] = useState(false);
   const [activeScreen, setActiveScreen] = useState<'map' | 'profile'>('map');
-
-  // Ads & Viewport
   const [ads, setAds] = useState<PublicAdItem[]>([]);
   const [selectedAd, setSelectedAd] = useState<PublicAdItem | null>(null);
   const [userAds, setUserAds] = useState<AdItem[]>([]);
-
-  // Modals
   const [showCreateWizard, setShowCreateWizard] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [prefillAdData, setPrefillAdData] = useState<any | null>(null);
-
-  // Geo-subscription & Notifications
   const [geoSub, setGeoSub] = useState<GeoSubscription | null>(null);
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
-
-  // Master Data
   const [masterUsers, setMasterUsers] = useState<User[]>([]);
   const [systemLogs, setSystemLogs] = useState<SystemLog[]>([]);
 
-  // Fetch Ads with optional bounding box
+  useEffect(() => {
+    jsonFetch('/api/auth/me').then(data => setCurrentUser(data.user)).finally(() => setAuthReady(true));
+    const params = new URLSearchParams(location.search);
+    const resetToken = params.get('reset');
+    if (resetToken) {
+      const password = window.prompt('Введите новый пароль (минимум 10 символов)');
+      if (password) jsonFetch('/api/auth/password/reset', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token: resetToken, password }) }).then(() => alert('Пароль изменён. Войдите с новым паролем.')).catch(error => alert(error.message)).finally(() => history.replaceState({}, '', '/'));
+    }
+  }, []);
+
   const fetchAds = useCallback(async (minLat?: number, maxLat?: number, minLng?: number, maxLng?: number) => {
-    try {
-      let url = '/api/ads';
-      const params = new URLSearchParams();
-      if (minLat && maxLat && minLng && maxLng) {
-        params.append('minLat', minLat.toString());
-        params.append('maxLat', maxLat.toString());
-        params.append('minLng', minLng.toString());
-        params.append('maxLng', maxLng.toString());
-      }
-      if (currentUser?.id) {
-        params.append('currentUserId', currentUser.id);
-      }
-      if (params.toString()) url += '?' + params.toString();
-
-      const res = await fetch(url);
-      const data = await res.json();
-      if (data.ads) {
-        setAds(data.ads);
-      }
-    } catch (err) {
-      console.error('Failed to fetch ads:', err);
+    const params = new URLSearchParams();
+    if ([minLat, maxLat, minLng, maxLng].every(value => value !== undefined)) {
+      params.set('minLat', String(minLat)); params.set('maxLat', String(maxLat)); params.set('minLng', String(minLng)); params.set('maxLng', String(maxLng));
     }
-  }, [currentUser]);
+    try { const data = await jsonFetch(`/api/ads${params.size ? `?${params}` : ''}`); setAds(data.ads || []); } catch (error) { console.error(error); }
+  }, []);
 
-  // Fetch User-specific Data (Subscriptions, Notifications, Master users, Logs)
   const fetchUserData = useCallback(async () => {
-    if (!currentUser) return;
+    if (!currentUser) { setUserAds([]); setNotifications([]); setGeoSub(null); return; }
     try {
-      // Subscription
-      const subRes = await fetch('/api/subscription', {
-        headers: { 'X-User-Id': currentUser.id }
-      });
-      const subData = await subRes.json();
-      if (subData.subscription) setGeoSub(subData.subscription);
-
-      // Notifications
-      const notifRes = await fetch('/api/notifications', {
-        headers: { 'X-User-Id': currentUser.id }
-      });
-      const notifData = await notifRes.json();
-      if (notifData.notifications) setNotifications(notifData.notifications);
-
-      // Master users & Logs if Master
+      const [subData, notificationData, adData] = await Promise.all([jsonFetch('/api/subscription'), jsonFetch('/api/notifications'), jsonFetch('/api/user/ads')]);
+      setGeoSub(subData.subscription || null); setNotifications(notificationData.notifications || []); setUserAds(adData.ads || []);
       if (currentUser.role === 'master') {
-        const masterRes = await fetch('/api/master/users', {
-          headers: { 'X-User-Id': currentUser.id }
-        });
-        const masterData = await masterRes.json();
-        if (masterData.users) setMasterUsers(masterData.users);
-
-        const logsRes = await fetch('/api/logs');
-        const logsData = await logsRes.json();
-        if (logsData.logs) setSystemLogs(logsData.logs);
+        const [usersData, logsData] = await Promise.all([jsonFetch('/api/master/users'), jsonFetch('/api/logs')]);
+        setMasterUsers(usersData.users || []); setSystemLogs(logsData.logs || []);
       }
-    } catch (err) {
-      console.error('Failed to fetch user data:', err);
-    }
+    } catch (error) { console.error(error); }
   }, [currentUser]);
 
-  useEffect(() => {
-    fetchAds();
-  }, [fetchAds]);
+  useEffect(() => { fetchAds(); }, [fetchAds]);
+  useEffect(() => { if (authReady) fetchUserData(); }, [authReady, fetchUserData]);
 
-  useEffect(() => {
-    fetchUserData();
-  }, [currentUser, fetchUserData]);
+  const handleLoginApi = async (email: string, password: string, captchaToken: string) => (await jsonFetch('/api/auth/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, password, captchaToken }) })).user;
+  const handleRegisterApi = async (email: string, password: string, name: string, captchaToken: string) => (await jsonFetch('/api/auth/register', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, password, name, captchaToken }) })).user;
+  const handleRecoveryApi = async (email: string, captchaToken: string) => { await jsonFetch('/api/auth/password/request', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, captchaToken }) }); };
+  const handleYandexApi = async () => { const data = await jsonFetch('/api/auth/yandex/start', { method: 'POST' }); location.assign(data.url); };
+  const handleLogout = async () => { await jsonFetch('/api/auth/logout', { method: 'POST' }); setCurrentUser(null); setActiveScreen('map'); };
+  const handleDeleteAccount = async () => { const data = await jsonFetch('/api/auth/delete-account', { method: 'POST' }); if (data.deleted) { setCurrentUser(null); setActiveScreen('map'); } else alert('На вашу почту отправлена ссылка для подтверждения удаления.'); };
+  const handleChangePassword = async (currentPassword: string, newPassword: string) => { await jsonFetch('/api/auth/password/change', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ currentPassword, newPassword }) }); };
+  const handleRequestPhone = async (adId: string, captchaToken: string) => (await jsonFetch(`/api/ads/${adId}/phone`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ captchaToken }) })).phone;
+  const handleSubmitComplaint = async (adId: string, reason: string, captchaToken: string) => { await jsonFetch(`/api/ads/${adId}/complaint`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ captchaToken, reason }) }); fetchAds(); };
+  const handleCreateAdSubmit = async (adData: any) => { const data = await jsonFetch('/api/ads', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(adData) }); fetchAds(); fetchUserData(); return { status: data.status, ad: data.ad }; };
+  const handleUnpublishAd = async (adId: string) => { await jsonFetch(`/api/ads/${adId}/unpublish`, { method: 'POST' }); fetchAds(); fetchUserData(); };
+  const handleSelectAd = async (ad: PublicAdItem) => { try { const data = await jsonFetch(`/api/ads/${ad.id}`); setSelectedAd(data.ad); } catch (error: any) { alert(error.message); } };
+  const handleSaveSubscription = async (lat: number, lng: number, radius: number) => { const data = await jsonFetch('/api/subscription', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ lat, lng, radius }) }); setGeoSub(data.subscription); };
+  const handleDeleteSubscription = async () => { await jsonFetch('/api/subscription', { method: 'DELETE' }); setGeoSub(null); };
 
-  // Auth Handlers
-  const handleLoginApi = async (email: string, pass: string, captchaToken: string) => {
-    const res = await fetch('/api/auth/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password: pass, captchaToken })
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'Ошибка входа');
-    return data.user;
+  const enablePush = async () => {
+    if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
+    const permission = await Notification.requestPermission();
+    if (permission !== 'granted') throw new Error('Push-уведомления запрещены браузером');
+    const registration = await navigator.serviceWorker.ready;
+    const { publicKey } = await jsonFetch('/api/push/public-key');
+    if (!publicKey) return;
+    const subscription = await registration.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: urlBase64ToUint8Array(publicKey) });
+    await jsonFetch('/api/push/subscribe', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(subscription) });
   };
+  const handleUpdateNotificationSettings = async (push: boolean, email: boolean) => { if (push) await enablePush(); const data = await jsonFetch('/api/user/settings', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ push, email }) }); setCurrentUser(data.user); if (!push) setGeoSub(null); };
+  const handleMasterBlockUser = async (targetUserId: string, blockUntil?: string) => { await jsonFetch('/api/master/block', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ targetUserId, blockUntil }) }); fetchUserData(); fetchAds(); };
+  const handleMasterUnblockUser = async (targetUserId: string) => { await jsonFetch('/api/master/unblock', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ targetUserId }) }); fetchUserData(); };
+  const handleCreateClick = () => { if (!currentUser) setShowAuthModal(true); else { setPrefillAdData(null); setShowCreateWizard(true); } };
 
-  const handleRegisterApi = async (email: string, pass: string, name: string, captchaToken: string) => {
-    const res = await fetch('/api/auth/register', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password: pass, name, captchaToken })
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'Ошибка регистрации');
-    return data.user;
-  };
-
-  const handleYandexApi = async (captchaToken: string) => {
-    const res = await fetch('/api/auth/yandex', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ captchaToken })
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'Ошибка входа');
-    return data.user;
-  };
-
-  const handleLogout = () => {
-    setCurrentUser(null);
-    setActiveScreen('map');
-  };
-
-  const handleDeleteAccount = async () => {
-    if (!currentUser) return;
-    await fetch('/api/auth/delete-account', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ userId: currentUser.id })
-    });
-    setCurrentUser(null);
-    setActiveScreen('map');
-    fetchAds();
-  };
-
-  // Request Phone Handler
-  const handleRequestPhone = async (adId: string, captchaToken: string) => {
-    const res = await fetch(`/api/ads/${adId}/phone`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ userId: currentUser?.id, captchaToken })
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'Не удалось получить номер');
-    return data.phone;
-  };
-
-  // Submit Complaint
-  const handleSubmitComplaint = async (adId: string, reason: string, captchaToken: string) => {
-    const res = await fetch(`/api/ads/${adId}/complaint`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ captchaToken, reason })
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'Не удалось отправить жалобу');
-    fetchAds();
-  };
-
-  // Create Ad Submit Handler
-  const handleCreateAdSubmit = async (adData: any) => {
-    const res = await fetch('/api/ads', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...adData, userId: currentUser?.id })
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'Ошибка публикации');
-    fetchAds();
-    return { status: data.status, ad: data.ad };
-  };
-
-  // Unpublish Ad
-  const handleUnpublishAd = async (adId: string) => {
-    const res = await fetch(`/api/ads/${adId}/unpublish`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ userId: currentUser?.id })
-    });
-    if (res.ok) {
-      fetchAds();
-      fetchUserData();
-    }
-  };
-
-  // Geo-Subscription Handlers
-  const handleSaveSubscription = async (lat: number, lng: number, radius: number) => {
-    if (!currentUser) return;
-    const res = await fetch('/api/subscription', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ userId: currentUser.id, lat, lng, radius })
-    });
-    const data = await res.json();
-    if (data.subscription) setGeoSub(data.subscription);
-  };
-
-  const handleDeleteSubscription = async () => {
-    if (!currentUser) return;
-    await fetch('/api/subscription', {
-      method: 'DELETE',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ userId: currentUser.id })
-    });
-    setGeoSub(null);
-  };
-
-  // Update Notifications Settings
-  const handleUpdateNotificationSettings = async (push: boolean, email: boolean) => {
-    if (!currentUser) return;
-    const res = await fetch('/api/user/settings', {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ userId: currentUser.id, push, email })
-    });
-    const data = await res.json();
-    if (data.user) {
-      setCurrentUser(data.user);
-    }
-  };
-
-  // Master actions
-  const handleMasterBlockUser = async (targetUserId: string, blockUntil?: string) => {
-    if (!currentUser || currentUser.role !== 'master') return;
-    await fetch('/api/master/block', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-User-Id': currentUser.id
-      },
-      body: JSON.stringify({ targetUserId, blockUntil })
-    });
-    fetchUserData();
-    fetchAds();
-  };
-
-  const handleMasterUnblockUser = async (targetUserId: string) => {
-    if (!currentUser || currentUser.role !== 'master') return;
-    await fetch('/api/master/unblock', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-User-Id': currentUser.id
-      },
-      body: JSON.stringify({ targetUserId })
-    });
-    fetchUserData();
-  };
-
-  const handleCreateClick = () => {
-    if (!currentUser) {
-      setShowAuthModal(true);
-    } else {
-      setPrefillAdData(null);
-      setShowCreateWizard(true);
-    }
-  };
-
-  return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col font-sans pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]">
-      {/* Top Header & Mobile Floating Navigation Bar */}
-      <BottomNav
-        activeScreen={activeScreen}
-        onNavigate={setActiveScreen}
-        onCreateAdClick={handleCreateClick}
-        currentUser={currentUser}
-        onOpenAuth={() => setShowAuthModal(true)}
-      />
-
-      {/* Main Content View */}
-      <main className="flex-1 pb-20">
-        {activeScreen === 'map' ? (
-          <MapView
-            ads={ads}
-            onSelectAd={setSelectedAd}
-            onViewportChange={(minLat, maxLat, minLng, maxLng) =>
-              fetchAds(minLat, maxLat, minLng, maxLng)
-            }
-            geoSubscription={geoSub}
-            onSaveSubscription={handleSaveSubscription}
-            onDeleteSubscription={handleDeleteSubscription}
-            isLoggedIn={Boolean(currentUser)}
-            onOpenAuth={() => setShowAuthModal(true)}
-          />
-        ) : currentUser ? (
-          <ProfileView
-            user={currentUser}
-            onLogout={handleLogout}
-            onDeleteAccount={handleDeleteAccount}
-            userAds={ads as any}
-            notifications={notifications}
-            onUnpublishAd={handleUnpublishAd}
-            onPrefillCreateAd={ad => {
-              setPrefillAdData(ad);
-              setShowCreateWizard(true);
-            }}
-            onUpdateNotificationSettings={handleUpdateNotificationSettings}
-            masterUsersList={masterUsers}
-            onMasterBlockUser={handleMasterBlockUser}
-            onMasterUnblockUser={handleMasterUnblockUser}
-            systemLogs={systemLogs}
-          />
-        ) : (
-          <div className="p-8 text-center">
-            <button
-              onClick={() => setShowAuthModal(true)}
-              className="bg-blue-600 text-white font-semibold px-6 py-3 rounded-xl shadow cursor-pointer"
-            >
-              Войти в профиль
-            </button>
-          </div>
-        )}
-      </main>
-
-      {/* Modals */}
-      {selectedAd && (
-        <AdDetailsModal
-          ad={selectedAd}
-          onClose={() => setSelectedAd(null)}
-          currentUser={currentUser}
-          onOpenAuth={() => setShowAuthModal(true)}
-          onRequestPhone={handleRequestPhone}
-          onSubmitComplaint={handleSubmitComplaint}
-        />
-      )}
-
-      {showCreateWizard && (
-        <CreateAdWizard
-          onClose={() => setShowCreateWizard(false)}
-          onSubmit={handleCreateAdSubmit}
-          prefillData={prefillAdData}
-        />
-      )}
-
-      {showAuthModal && (
-        <AuthModal
-          onClose={() => setShowAuthModal(false)}
-          onLoginSuccess={user => {
-            setCurrentUser(user);
-            setShowAuthModal(false);
-          }}
-          onLoginApi={handleLoginApi}
-          onRegisterApi={handleRegisterApi}
-          onYandexApi={handleYandexApi}
-        />
-      )}
-    </div>
-  );
+  return <div className="app-shell min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col font-sans pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]">
+    <BottomNav activeScreen={activeScreen} onNavigate={setActiveScreen} onCreateAdClick={handleCreateClick} currentUser={currentUser} onOpenAuth={() => setShowAuthModal(true)} />
+    <main className="flex-1 pb-20">{activeScreen === 'map' ? <MapView ads={ads} onSelectAd={handleSelectAd} onViewportChange={fetchAds} geoSubscription={geoSub} onSaveSubscription={handleSaveSubscription} onDeleteSubscription={handleDeleteSubscription} isLoggedIn={Boolean(currentUser)} onOpenAuth={() => setShowAuthModal(true)} /> : currentUser ? <ProfileView user={currentUser} onLogout={handleLogout} onDeleteAccount={handleDeleteAccount} onChangePassword={handleChangePassword} userAds={userAds} notifications={notifications} onUnpublishAd={handleUnpublishAd} onPrefillCreateAd={ad => { setPrefillAdData(ad); setShowCreateWizard(true); }} onUpdateNotificationSettings={handleUpdateNotificationSettings} masterUsersList={masterUsers} onMasterBlockUser={handleMasterBlockUser} onMasterUnblockUser={handleMasterUnblockUser} systemLogs={systemLogs} /> : <div className="p-8 text-center"><button onClick={() => setShowAuthModal(true)} className="bg-[#008E3A] text-white font-semibold px-6 py-3 rounded-xl shadow cursor-pointer">Войти в профиль</button></div>}</main>
+    {selectedAd ? <AdDetailsModal ad={selectedAd} onClose={() => setSelectedAd(null)} currentUser={currentUser} onOpenAuth={() => setShowAuthModal(true)} onRequestPhone={handleRequestPhone} onSubmitComplaint={handleSubmitComplaint} /> : null}
+    {showCreateWizard ? <CreateAdWizard onClose={() => setShowCreateWizard(false)} onSubmit={handleCreateAdSubmit} prefillData={prefillAdData} /> : null}
+    {showAuthModal ? <AuthModal onClose={() => setShowAuthModal(false)} onLoginSuccess={user => { setCurrentUser(user); setShowAuthModal(false); }} onLoginApi={handleLoginApi} onRegisterApi={handleRegisterApi} onRecoveryApi={handleRecoveryApi} onYandexApi={handleYandexApi} /> : null}
+  </div>;
 }

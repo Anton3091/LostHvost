@@ -1,0 +1,1 @@
+20 3 * * * root /opt/losthvost/current/scripts/backup.sh >> /var/log/losthvost-backup.log 2>&1
