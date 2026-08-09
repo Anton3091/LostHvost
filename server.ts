@@ -21,7 +21,7 @@ const dataDir = process.env.DATA_DIR || path.join(process.cwd(), 'data');
 const uploadsDir = path.join(dataDir, 'uploads');
 fs.mkdirSync(uploadsDir, { recursive: true });
 
-if (production && !process.env.TURNSTILE_SECRET_KEY) throw new Error('TURNSTILE_SECRET_KEY is required');
+if (production && !process.env.SMARTCAPTCHA_SERVER_KEY) throw new Error('SMARTCAPTCHA_SERVER_KEY is required');
 if (production && !process.env.SESSION_SECRET) throw new Error('SESSION_SECRET is required');
 
 const db = new Database(path.join(dataDir, 'losthvost.sqlite'));
@@ -85,7 +85,7 @@ app.disable('x-powered-by');
 app.use(helmet({ contentSecurityPolicy: false, crossOriginResourcePolicy: { policy: 'cross-origin' } }));
 app.use(express.json({ limit: '35mb' }));
 app.use(cookieParser());
-app.use((req, res, next) => { req.requestId = String(req.header('cf-ray') || crypto.randomUUID()); res.setHeader('X-Request-Id', req.requestId); next(); });
+app.use((req, res, next) => { req.requestId = crypto.randomUUID(); res.setHeader('X-Request-Id', req.requestId); next(); });
 app.use((req, res, next) => { if (production && !['GET', 'HEAD', 'OPTIONS'].includes(req.method)) { const origin = req.header('origin'); if (origin && origin !== appUrl) return res.status(403).json({ error: 'Недопустимый источник запроса' }); } next(); });
 app.use('/api', rateLimit({ windowMs: 60_000, limit: Number(process.env.API_RATE_LIMIT || 120), standardHeaders: 'draft-7', legacyHeaders: false }));
 const authLimit = rateLimit({ windowMs: 10 * 60_000, limit: 10, standardHeaders: 'draft-7', legacyHeaders: false });
@@ -108,14 +108,23 @@ const blocked = (user: AppUser) => {
 };
 
 async function verifyCaptcha(token: unknown, ip: string) {
-  const secret = process.env.CLOUDFLARE_TURNSTILE_SECRET_KEY || process.env.TURNSTILE_SECRET_KEY;
+  const secret = process.env.SMARTCAPTCHA_SERVER_KEY;
   if (!secret && !production) return typeof token === 'string' && token.length > 0;
   if (!secret) return false;
   if (typeof token !== 'string' || !token) return false;
-  const body = new URLSearchParams({ secret, response: token });
-  const response = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', { method: 'POST', body });
-  const data = await response.json() as { success?: boolean };
-  return data.success === true;
+  const body = new URLSearchParams({ secret, token, ip });
+  try {
+    const response = await fetch('https://smartcaptcha.cloud.yandex.ru/validate', {
+      method: 'POST',
+      body,
+      signal: AbortSignal.timeout(5000)
+    });
+    if (!response.ok) return false;
+    const data = await response.json() as { status?: string };
+    return data.status === 'ok';
+  } catch {
+    return false;
+  }
 }
 
 function createSession(res: Response, userId: string) {
