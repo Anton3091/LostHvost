@@ -5,7 +5,7 @@ services:
     build:
       context: .
       args:
-        VITE_CLOUDFLARE_TURNSTILE_SITE_KEY: ${TURNSTILE_SITE_KEY}
+        VITE_YANDEX_SMARTCAPTCHA_SITE_KEY: ${SMARTCAPTCHA_CLIENT_KEY}
     restart: unless-stopped
     env_file: .env
     volumes:

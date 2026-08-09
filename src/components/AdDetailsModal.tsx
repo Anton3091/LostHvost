@@ -60,6 +60,7 @@ export const AdDetailsModal: React.FC<AdDetailsModalProps> = ({
       setShowPhoneCaptcha(false);
     } catch (err: any) {
       setPhoneError(err.message || 'Ошибка получения номера телефона');
+      setPhoneCaptchaToken('');
     } finally {
       setPhoneLoading(false);
     }
@@ -81,6 +82,7 @@ export const AdDetailsModal: React.FC<AdDetailsModalProps> = ({
       }, 2000);
     } catch (err: any) {
       setComplaintError(err.message || 'Не удалось отправить жалобу');
+      setComplaintCaptchaToken('');
     } finally {
       setComplaintLoading(false);
     }
