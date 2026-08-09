@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { CheckCircle2, Cloud } from 'lucide-react';
+import { useSystemDarkMode } from '../theme';
 
 interface CaptchaWidgetProps {
   onVerify: (token: string) => void;
@@ -32,6 +33,7 @@ export const CaptchaWidget: React.FC<CaptchaWidgetProps> = ({
   isVerified,
   siteKey = ((import.meta as any).env?.VITE_CLOUDFLARE_TURNSTILE_SITE_KEY as string)
 }) => {
+  const isDarkMode = useSystemDarkMode();
   const containerRef = useRef<HTMLDivElement>(null);
   const widgetIdRef = useRef<string | null>(null);
   const [turnstileLoaded, setTurnstileLoaded] = useState(false);
@@ -75,10 +77,9 @@ export const CaptchaWidget: React.FC<CaptchaWidgetProps> = ({
     }
 
     try {
-      const isDark = document.documentElement.classList.contains('dark');
       const widgetId = window.turnstile.render(containerRef.current, {
         sitekey: siteKey,
-        theme: isDark ? 'dark' : 'light',
+        theme: isDarkMode ? 'dark' : 'light',
         callback: (token: string) => {
           if (token) {
             setRenderError(false);
@@ -110,7 +111,7 @@ export const CaptchaWidget: React.FC<CaptchaWidgetProps> = ({
         widgetIdRef.current = null;
       }
     };
-  }, [turnstileLoaded, siteKey, isVerified, onVerify]);
+  }, [turnstileLoaded, siteKey, isVerified, onVerify, isDarkMode]);
 
   useEffect(() => { if (!siteKey) setRenderError(true); }, [siteKey]);
 

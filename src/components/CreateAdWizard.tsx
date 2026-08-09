@@ -4,6 +4,7 @@ import { ArrowLeft, ArrowRight, Upload, Trash2, MapPin, Sparkles, CheckCircle2, 
 import { motion, AnimatePresence } from 'motion/react';
 import { AdType, AdCategory } from '../types';
 import { CaptchaWidget } from './CaptchaWidget';
+import { cartoTileUrl, useSystemDarkMode } from '../theme';
 
 interface CreateAdWizardProps {
   onClose: () => void;
@@ -16,6 +17,7 @@ export const CreateAdWizard: React.FC<CreateAdWizardProps> = ({
   onSubmit,
   prefillData
 }) => {
+  const isDarkMode = useSystemDarkMode();
   const [step, setStep] = useState(1);
 
   // Form State
@@ -38,6 +40,7 @@ export const CreateAdWizard: React.FC<CreateAdWizardProps> = ({
   // Map Picker Ref
   const pickerMapRef = useRef<HTMLDivElement>(null);
   const leafletPickerMap = useRef<L.Map | null>(null);
+  const pickerTileLayer = useRef<L.TileLayer | null>(null);
   const pickerMarker = useRef<L.Marker | null>(null);
 
   // Photo upload handler
@@ -134,7 +137,7 @@ export const CreateAdWizard: React.FC<CreateAdWizardProps> = ({
         zoomControl: false
       });
 
-      L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+      pickerTileLayer.current = L.tileLayer(cartoTileUrl(isDarkMode), {
         maxZoom: 19
       }).addTo(map);
 
@@ -163,7 +166,11 @@ export const CreateAdWizard: React.FC<CreateAdWizardProps> = ({
 
       leafletPickerMap.current = map;
     }
-  }, [step]);
+  }, [step, isDarkMode]);
+
+  useEffect(() => {
+    pickerTileLayer.current?.setUrl(cartoTileUrl(isDarkMode));
+  }, [isDarkMode]);
 
   // Validation before next step
   const validateAndNext = () => {

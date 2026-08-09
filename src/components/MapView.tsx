@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import L from 'leaflet';
 import { Locate, Bell, Check, Trash2, MapPin, ChevronRight, Settings, X } from 'lucide-react';
 import { PublicAdItem, GeoSubscription } from '../types';
+import { cartoTileUrl, useSystemDarkMode } from '../theme';
 
 interface MapViewProps {
   ads: PublicAdItem[];
@@ -24,8 +25,11 @@ export const MapView: React.FC<MapViewProps> = ({
   isLoggedIn,
   onOpenAuth
 }) => {
+  const isDarkMode = useSystemDarkMode();
+  const initialDarkMode = useRef(isDarkMode);
   const mapRef = useRef<HTMLDivElement>(null);
   const leafletMap = useRef<L.Map | null>(null);
+  const baseTileLayer = useRef<L.TileLayer | null>(null);
   const markersLayer = useRef<L.LayerGroup | null>(null);
   const userGpsMarker = useRef<L.Marker | null>(null);
   const subCircleLayer = useRef<L.Circle | null>(null);
@@ -54,8 +58,7 @@ export const MapView: React.FC<MapViewProps> = ({
 
     map.attributionControl.setPrefix(false);
 
-    // CartoDB Voyager Tile Layer for clean aesthetic map
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+    baseTileLayer.current = L.tileLayer(cartoTileUrl(initialDarkMode.current), {
       maxZoom: 19,
       attribution: '&copy; OpenStreetMap &copy; CARTO'
     }).addTo(map);
@@ -91,6 +94,10 @@ export const MapView: React.FC<MapViewProps> = ({
       leafletMap.current = null;
     };
   }, []);
+
+  useEffect(() => {
+    baseTileLayer.current?.setUrl(cartoTileUrl(isDarkMode));
+  }, [isDarkMode]);
 
   // Update Ad Markers on Map
   useEffect(() => {
