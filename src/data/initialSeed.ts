@@ -6,9 +6,10 @@ export const SEED_USERS: User[] = [
     email: 'master@petfinder.ru',
     name: 'Мастер-Администратор',
     role: 'master',
+    avatarUrl: null,
     isBlocked: false,
     authProvider: 'email',
-    notificationSettings: { push: true, email: true },
+    notificationSettings: { push: false, email: false, telegram: false },
     createdAt: new Date(Date.now() - 30 * 86400000).toISOString()
   },
   {
@@ -16,9 +17,10 @@ export const SEED_USERS: User[] = [
     email: 'anna.smirnova@mail.ru',
     name: 'Анна Смирнова',
     role: 'user',
+    avatarUrl: null,
     isBlocked: false,
     authProvider: 'email',
-    notificationSettings: { push: true, email: true },
+    notificationSettings: { push: false, email: false, telegram: false },
     createdAt: new Date(Date.now() - 15 * 86400000).toISOString()
   },
   {
@@ -26,9 +28,10 @@ export const SEED_USERS: User[] = [
     email: 'dmitry.v@yandex.ru',
     name: 'Дмитрий Василенко',
     role: 'user',
+    avatarUrl: null,
     isBlocked: false,
     authProvider: 'yandex',
-    notificationSettings: { push: true, email: false },
+    notificationSettings: { push: false, email: false, telegram: false },
     createdAt: new Date(Date.now() - 10 * 86400000).toISOString()
   },
   {
@@ -36,9 +39,10 @@ export const SEED_USERS: User[] = [
     email: 'elena.petrova@gmail.com',
     name: 'Елена Петрова',
     role: 'user',
+    avatarUrl: null,
     isBlocked: false,
     authProvider: 'email',
-    notificationSettings: { push: false, email: true },
+    notificationSettings: { push: false, email: false, telegram: false },
     createdAt: new Date(Date.now() - 5 * 86400000).toISOString()
   }
 ];

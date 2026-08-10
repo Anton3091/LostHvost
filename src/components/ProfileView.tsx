@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   User as UserIcon,
   Eye,
@@ -15,7 +15,10 @@ import {
   Lock,
   Unlock,
   Activity,
-  ChevronRight
+  ChevronRight,
+  Mail,
+  Loader2,
+  Send
 } from 'lucide-react';
 import { User, AdItem, SystemLog } from '../types';
 
@@ -24,9 +27,13 @@ interface ProfileViewProps {
   onLogout: () => void;
   onDeleteAccount: () => Promise<void>;
   userAds: AdItem[];
+  userAdsLoading: boolean;
   onUnpublishAd: (adId: string) => Promise<void>;
+  onRepublishAd: (adId: string) => Promise<void>;
   onPrefillCreateAd: (ad: AdItem) => void;
-  onUpdateNotificationSettings: (push: boolean, email: boolean) => Promise<void>;
+  onUpdateNotificationSettings: (push: boolean, email: boolean, telegram: boolean) => Promise<void>;
+  onCreateTelegramLink: () => Promise<void>;
+  onOpenDeveloperContact: () => void;
   onChangePassword: (currentPassword: string, newPassword: string) => Promise<void>;
   // Master methods
   masterUsersList?: User[];
@@ -40,9 +47,13 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
   onLogout,
   onDeleteAccount,
   userAds,
+  userAdsLoading,
   onUnpublishAd,
+  onRepublishAd,
   onPrefillCreateAd,
   onUpdateNotificationSettings,
+  onCreateTelegramLink,
+  onOpenDeveloperContact,
   onChangePassword,
   masterUsersList = [],
   onMasterBlockUser,
@@ -52,9 +63,12 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
   const [activeTab, setActiveTab] = useState<'ads' | 'master' | 'logs'>('ads');
 
   // Push & Email Settings state
-  const [pushEnabled, setPushEnabled] = useState(user.notificationSettings?.push ?? true);
-  const [emailEnabled, setEmailEnabled] = useState(user.notificationSettings?.email ?? true);
+  const [pushEnabled, setPushEnabled] = useState(user.notificationSettings?.push ?? false);
+  const [emailEnabled, setEmailEnabled] = useState(user.notificationSettings?.email ?? false);
+  const [telegramEnabled, setTelegramEnabled] = useState(user.notificationSettings?.telegram ?? false);
   const [settingsSaved, setSettingsSaved] = useState(false);
+  const [telegramLinkLoading, setTelegramLinkLoading] = useState(false);
+  const [telegramLinkError, setTelegramLinkError] = useState<string | null>(null);
 
   // Account Deletion Modal
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -69,6 +83,12 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
   const [selectedUserToBlock, setSelectedUserToBlock] = useState<User | null>(null);
   const [blockUntilDate, setBlockUntilDate] = useState('');
 
+  useEffect(() => {
+    setPushEnabled(user.notificationSettings?.push ?? false);
+    setEmailEnabled(user.notificationSettings?.email ?? false);
+    setTelegramEnabled(user.notificationSettings?.telegram ?? false);
+  }, [user]);
+
   // Combine and sort ads: active first, then unpublished
   const allAds = [...userAds].sort((a, b) => {
     if (a.status === 'active' && b.status !== 'active') return -1;
@@ -76,10 +96,21 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
     return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
   });
 
-  const handleSaveSettings = async (push: boolean, email: boolean) => {
-    await onUpdateNotificationSettings(push, email);
+  const handleSaveSettings = async (push: boolean, email: boolean, telegram: boolean) => {
+    await onUpdateNotificationSettings(push, email, telegram);
     setSettingsSaved(true);
     setTimeout(() => setSettingsSaved(false), 2000);
+  };
+  const handleTelegramConnect = async () => {
+    setTelegramLinkLoading(true);
+    setTelegramLinkError(null);
+    try {
+      await onCreateTelegramLink();
+    } catch (error: any) {
+      setTelegramLinkError(error.message || 'Не удалось открыть Telegram');
+    } finally {
+      setTelegramLinkLoading(false);
+    }
   };
 
   const handleConfirmDelete = async () => {
@@ -154,7 +185,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
           <input
             type="checkbox"
             checked={pushEnabled}
-            onChange={e => { const value = e.target.checked; setPushEnabled(value); handleSaveSettings(value, emailEnabled); }}
+            onChange={e => { const value = e.target.checked; setPushEnabled(value); handleSaveSettings(value, emailEnabled, telegramEnabled); }}
             className="w-5 h-5 rounded text-[#008E3A] focus:ring-[#008E3A] cursor-pointer"
           />
         </div>
@@ -167,8 +198,24 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
           <input
             type="checkbox"
             checked={emailEnabled}
-            onChange={e => { const value = e.target.checked; setEmailEnabled(value); handleSaveSettings(pushEnabled, value); }}
+            onChange={e => { const value = e.target.checked; setEmailEnabled(value); handleSaveSettings(pushEnabled, value, telegramEnabled); }}
             className="w-5 h-5 rounded text-[#008E3A] focus:ring-[#008E3A] cursor-pointer"
+          />
+        </div>
+
+        <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between gap-3">
+          <div className="flex flex-col min-w-0">
+            <span className="font-semibold text-slate-800 dark:text-slate-200 flex items-center gap-2"><Send className="w-4 h-4 text-sky-500" />Telegram-уведомления</span>
+            <span className="text-[11px] text-slate-500">Сообщения о событиях объявления и геоподписке</span>
+            {!user.telegramConnected && <button type="button" onClick={handleTelegramConnect} disabled={telegramLinkLoading} className="mt-2 w-fit text-[11px] font-semibold text-sky-600 dark:text-sky-400 cursor-pointer disabled:opacity-50">{telegramLinkLoading ? 'Открываем Telegram…' : 'Подключить Telegram'}</button>}
+            {telegramLinkError && <span className="text-[11px] text-rose-600 dark:text-rose-400">{telegramLinkError}</span>}
+          </div>
+          <input
+            type="checkbox"
+            checked={telegramEnabled}
+            disabled={!user.telegramConnected}
+            onChange={e => { const value = e.target.checked; setTelegramEnabled(value); handleSaveSettings(pushEnabled, emailEnabled, value); }}
+            className="w-5 h-5 rounded text-[#008E3A] focus:ring-[#008E3A] cursor-pointer disabled:opacity-40"
           />
         </div>
 
@@ -187,6 +234,21 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
           <ChevronRight className="w-4 h-4 text-slate-400" />
         </button>
 
+        <button
+          type="button"
+          onClick={onOpenDeveloperContact}
+          className="w-full px-5 py-4 flex items-center justify-between text-left hover:bg-slate-50 dark:hover:bg-slate-800/60 transition cursor-pointer"
+        >
+          <span className="flex items-center space-x-3">
+            <Mail className="w-4 h-4 text-slate-400" />
+            <span className="flex flex-col">
+              <span className="font-semibold text-slate-800 dark:text-slate-200">Связаться с разработчиком</span>
+              <span className="text-[11px] text-slate-500">Открыть письмо с почтового приложения</span>
+            </span>
+          </span>
+          <ChevronRight className="w-4 h-4 text-slate-400" />
+        </button>
+
       </div>
 
       {/* Tabs Navigation */}
@@ -199,7 +261,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
               : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
           }`}
         >
-          Мои объявления ({allAds.length})
+          Мои объявления ({userAdsLoading ? '…' : allAds.length})
         </button>
 
         {user.role === 'master' && (
@@ -231,7 +293,12 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
       {/* TAB 1: All Ads */}
       {activeTab === 'ads' && (
         <div className="space-y-4">
-          {allAds.length === 0 ? (
+          {userAdsLoading ? (
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-8 rounded-2xl flex items-center justify-center gap-2 text-sm text-slate-500">
+              <Loader2 className="w-5 h-5 animate-spin text-[#008E3A]" />
+              <span>Загружаем объявления…</span>
+            </div>
+          ) : allAds.length === 0 ? (
             <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-8 rounded-2xl text-center space-y-2">
               <p className="text-sm font-medium text-slate-600 dark:text-slate-400">
                 У вас нет объявлений
@@ -261,7 +328,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                             ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/80 dark:text-emerald-100'
                             : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300'
                         }`}>
-                          {isActive ? 'Опубликовано' : 'Снято с публикации'}
+                          {isActive ? 'Активно' : ad.status === 'rejected' ? 'Отклонено' : ad.status === 'pending_moderation' ? 'На модерации' : 'Снято с публикации'}
                         </span>
                       </div>
                     </div>
@@ -269,21 +336,19 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                     <div className="space-y-2 flex-1 mt-3 sm:mt-0">
                       <div className="flex flex-col space-y-0.5">
                         <span className="text-base font-bold text-slate-900 dark:text-slate-100">
-                          {ad.petName || ad.category}
+                          {ad.petName || 'Питомец без имени'}
                         </span>
                         <p className="text-sm text-slate-500 dark:text-slate-400 line-clamp-2 leading-snug">
                           {ad.description}
                         </p>
                       </div>
 
-                      <div className="flex flex-wrap items-center gap-3 text-xs text-slate-500 dark:text-slate-400 pt-1">
-                        <div className="flex items-center space-x-1.5 font-medium text-[#008E3A]">
+                      <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500 dark:text-slate-400 pt-1">
+                        <div className="flex items-center gap-1 font-medium text-[#008E3A]" title={`Просмотров: ${ad.viewsCount}`} aria-label={`Просмотров: ${ad.viewsCount}`}>
                           <Eye className="w-4 h-4" />
-                          <span>Просмотров: {ad.viewsCount}</span>
                         </div>
-                        <div className="flex items-center space-x-1.5">
+                        <div className="flex items-center gap-1" title={`Опубликовано: ${new Date(ad.createdAt).toLocaleDateString('ru-RU')}`} aria-label={`Опубликовано: ${new Date(ad.createdAt).toLocaleDateString('ru-RU')}`}>
                           <Calendar className="w-4 h-4" />
-                          <span>Опубликовано: {new Date(ad.createdAt).toLocaleDateString('ru-RU')}</span>
                         </div>
                       </div>
                     </div>
@@ -298,14 +363,24 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                         <XCircle className="w-4 h-4" />
                         <span>Снять с публикации</span>
                       </button>
-                    ) : (
+                    ) : ad.status === 'unpublished' ? (
                       <button
-                        onClick={() => onPrefillCreateAd(ad)}
+                        onClick={() => onRepublishAd(ad.id)}
                         className="w-full sm:w-auto bg-slate-100 hover:bg-slate-200 text-slate-700 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-300 font-semibold px-5 py-3 rounded-2xl text-xs transition cursor-pointer flex items-center justify-center space-x-1.5"
                       >
                         <Repeat className="w-4 h-4" />
                         <span>Опубликовать заново</span>
                       </button>
+                    ) : ad.status === 'rejected' ? (
+                      <button
+                        onClick={() => onPrefillCreateAd(ad)}
+                        className="w-full sm:w-auto bg-rose-50 hover:bg-rose-100 text-rose-700 dark:bg-rose-950/40 dark:hover:bg-rose-900/60 dark:text-rose-300 font-semibold px-5 py-3 rounded-2xl text-xs transition cursor-pointer flex items-center justify-center space-x-1.5"
+                      >
+                        <Repeat className="w-4 h-4" />
+                        <span>Изменить объявление</span>
+                      </button>
+                    ) : (
+                      <span className="text-xs text-slate-400">Проверяем объявление…</span>
                     )}
                   </div>
                 </div>

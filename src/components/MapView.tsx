@@ -14,6 +14,7 @@ interface MapViewProps {
   onDeleteSubscription: () => void;
   isLoggedIn: boolean;
   onOpenAuth: () => void;
+  pushEnabled: boolean;
 }
 
 export const MapView: React.FC<MapViewProps> = ({
@@ -24,7 +25,8 @@ export const MapView: React.FC<MapViewProps> = ({
   onSaveSubscription,
   onDeleteSubscription,
   isLoggedIn,
-  onOpenAuth
+  onOpenAuth,
+  pushEnabled
 }) => {
   const isDarkMode = useSystemDarkMode();
   const initialDarkMode = useRef(isDarkMode);
@@ -36,13 +38,13 @@ export const MapView: React.FC<MapViewProps> = ({
   const subCircleLayer = useRef<L.Circle | null>(null);
   const subMarkerLayer = useRef<L.Marker | null>(null);
 
-  // Default subscription radius set to 10 km (10000 m) as requested
   const [isSubMode, setIsSubMode] = useState(false);
   const [locationHelpOpen, setLocationHelpOpen] = useState(false);
   const [locationLoading, setLocationLoading] = useState(false);
   const [subLat, setSubLat] = useState<number>(geoSubscription?.lat || 55.751244);
   const [subLng, setSubLng] = useState<number>(geoSubscription?.lng || 37.598418);
-  const [subRadius, setSubRadius] = useState<number>(geoSubscription?.radius || 10000);
+  const [subRadius, setSubRadius] = useState<number>(geoSubscription?.radius || 5000);
+  const isPwa = typeof window !== 'undefined' && (window.matchMedia('(display-mode: standalone)').matches || Boolean((navigator as Navigator & { standalone?: boolean }).standalone));
 
   // Initialize Leaflet Map
   useEffect(() => {
@@ -62,7 +64,7 @@ export const MapView: React.FC<MapViewProps> = ({
 
     baseTileLayer.current = L.tileLayer(cartoTileUrl(initialDarkMode.current), {
       maxZoom: 19,
-      attribution: '&copy; OpenStreetMap &copy; CARTO'
+      attribution: '&copy; OpenStreetMap contributors &copy; CARTO'
     }).addTo(map);
 
     L.control.zoom({ position: 'bottomright' }).addTo(map);
@@ -264,7 +266,7 @@ export const MapView: React.FC<MapViewProps> = ({
             </div>
             <div className="min-w-0 flex-1">
               <h2 className="text-sm font-bold text-slate-900 dark:text-slate-100 leading-tight">Гео-подписка</h2>
-              <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-snug truncate">
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-snug whitespace-normal break-words">
                 {geoSubscription?.isActive
                   ? `Уведомления в радиусе ${geoSubscription.radius >= 1000 ? `${geoSubscription.radius / 1000} км` : `${geoSubscription.radius} м`}`
                   : 'Настройте уведомления о животных поблизости'}
@@ -305,31 +307,11 @@ export const MapView: React.FC<MapViewProps> = ({
                 <MapPin className="w-4 h-4" />
                 <span>Радиус зоны: <strong className="text-[#008E3A]">{subRadius >= 1000 ? `${subRadius / 1000} км` : `${subRadius} м`}</strong></span>
               </div>
-              <span className="text-[11px] text-slate-400">Перетащите маркер на карте ниже</span>
+              <span className="text-[11px] text-slate-400 text-right">Перетащите маркер на карте ниже</span>
             </div>
 
-            {/* Dynamic Range Slider */}
-            <div className="space-y-1.5">
-              <input
-                type="range"
-                min={500}
-                max={30000}
-                step={500}
-                value={subRadius}
-                onChange={e => setSubRadius(Number(e.target.value))}
-                className="w-full accent-[#008E3A] cursor-pointer"
-              />
-              <div className="flex justify-between text-[10px] font-medium text-slate-400">
-                <span>500 м</span>
-                <span>5 км</span>
-                <span>15 км</span>
-                <span>30 км</span>
-              </div>
-            </div>
-
-            {/* Quick Radius Selector Pills */}
-            <div className="grid grid-cols-5 gap-1.5">
-              {[1000, 3000, 5000, 10000, 20000].map(r => (
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
+              {[1000, 2000, 5000, 10000].map(r => (
                 <button
                   key={r}
                   type="button"
@@ -343,6 +325,13 @@ export const MapView: React.FC<MapViewProps> = ({
                   {r >= 1000 ? `${r / 1000} км` : `${r} м`}
                 </button>
               ))}
+            </div>
+
+            <div className="rounded-2xl border border-blue-200/80 bg-blue-50/80 dark:border-blue-900/60 dark:bg-blue-950/30 p-3 space-y-1.5 text-[11px] leading-relaxed text-blue-900 dark:text-blue-100">
+              <p className="font-bold">Пуши работают только в установленном PWA</p>
+              <p>На iPhone или iPad откройте LostHvost в Safari, нажмите «Поделиться» → «На экран Домой», затем запускайте сайт с иконки и разрешите уведомления.</p>
+              {!isPwa && <p className="font-semibold text-blue-700 dark:text-blue-300">Сейчас сайт открыт в обычной вкладке. Подписку можно настроить, но уведомления появятся после запуска PWA.</p>}
+              {!pushEnabled && <p className="font-semibold text-amber-700 dark:text-amber-300">В профиле отключены push-уведомления. Включите их после установки PWA.</p>}
             </div>
 
             <div className="flex space-x-2 pt-1">
@@ -373,12 +362,12 @@ export const MapView: React.FC<MapViewProps> = ({
         {/* Legend Overlay Pill (Top-Left) */}
         <div className="absolute top-3.5 left-3.5 z-[1000] liquid-glass px-3.5 py-2 rounded-full flex items-center space-x-3 text-xs font-medium text-slate-800 dark:text-slate-100 shadow-md">
           <div className="flex items-center space-x-1.5">
-            <span className="w-2.5 h-2.5 rounded-full bg-[#ff9500] ring-2 ring-white shadow-sm" />
+            <span className="w-2.5 h-2.5 rounded-full bg-[#e53935] ring-2 ring-white shadow-sm" />
             <span className="text-[11px] font-semibold">Потерян</span>
           </div>
           <span className="text-slate-300 dark:text-slate-600">|</span>
           <div className="flex items-center space-x-1.5">
-            <span className="w-2.5 h-2.5 rounded-full bg-[#34c759] ring-2 ring-white shadow-sm" />
+            <span className="w-2.5 h-2.5 rounded-full bg-[#2563eb] ring-2 ring-white shadow-sm" />
             <span className="text-[11px] font-semibold">Найден</span>
           </div>
         </div>
@@ -447,7 +436,7 @@ export const MapView: React.FC<MapViewProps> = ({
                     />
                     <span
                       className={`absolute top-1 left-1 px-1.5 py-0.5 rounded-md text-[9px] font-bold tracking-tight text-white ${
-                        isLost ? 'bg-[#FF9500]' : 'bg-[#34C759]'
+                        isLost ? 'bg-[#e53935]' : 'bg-[#2563eb]'
                       }`}
                     >
                       {isLost ? 'ПОТЕРЯЛСЯ' : 'НАЙДЕН'}
@@ -458,7 +447,7 @@ export const MapView: React.FC<MapViewProps> = ({
                   <div className="flex-1 min-w-0 space-y-1">
                     <div className="flex items-center justify-between">
                       <h4 className="text-sm font-bold text-slate-900 dark:text-slate-100 truncate">
-                        {ad.petName || (isLost ? 'Без клички' : 'Питомец без имени')}
+                        {ad.petName || 'Питомец без имени'}
                       </h4>
                       <span className="text-[11px] text-slate-400 font-medium">
                         {ad.category === 'cat' ? '🐱 Кошка' : ad.category === 'dog' ? '🐶 Собака' : '🐾 Другое'}
