@@ -82,12 +82,12 @@ export default function App() {
   const handleDeleteSubscription = async () => { await jsonFetch('/api/subscription', { method: 'DELETE' }); setGeoSub(null); };
 
   const enablePush = async () => {
-    if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
+    if (!('serviceWorker' in navigator) || !('PushManager' in window)) throw new Error('Push-уведомления не поддерживаются этим браузером');
     const permission = await Notification.requestPermission();
     if (permission !== 'granted') throw new Error('Push-уведомления запрещены браузером');
     const registration = await navigator.serviceWorker.ready;
     const { publicKey } = await jsonFetch('/api/push/public-key');
-    if (!publicKey) return;
+    if (!publicKey) throw new Error('Push-уведомления пока недоступны');
     const subscription = await registration.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: urlBase64ToUint8Array(publicKey) });
     await jsonFetch('/api/push/subscribe', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(subscription) });
   };
