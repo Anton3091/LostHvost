@@ -3,7 +3,7 @@ import L from 'leaflet';
 import { Locate, Bell, Check, Trash2, MapPin, ChevronRight, Settings, X } from 'lucide-react';
 import { PublicAdItem, GeoSubscription } from '../types';
 import { cartoTileUrl, useSystemDarkMode } from '../theme';
-import { getCurrentLocation, isGeolocationPermissionDenied, isStandalonePwa } from '../geolocation';
+import { getCurrentLocation, getCurrentLocationViaBridge, isGeolocationPermissionDenied, isStandalonePwa } from '../geolocation';
 
 interface MapViewProps {
   ads: PublicAdItem[];
@@ -200,11 +200,10 @@ export const MapView: React.FC<MapViewProps> = ({
   }, [isSubMode, subLat, subLng, subRadius, geoSubscription]);
 
   // Geolocation trigger
-  const handleGetLocation = async () => {
+  const handleGetLocation = async (useBridge = false) => {
     setLocationHelpOpen(false);
     setLocationLoading(true);
-    const applyLocation = (pos: GeolocationPosition) => {
-      const { latitude, longitude } = pos.coords;
+    const applyLocation = (latitude: number, longitude: number) => {
       if (!leafletMap.current) return;
       leafletMap.current.flyTo([latitude, longitude], 13);
       if (userGpsMarker.current) leafletMap.current.removeLayer(userGpsMarker.current);
@@ -221,7 +220,13 @@ export const MapView: React.FC<MapViewProps> = ({
     };
 
     try {
-      applyLocation(await getCurrentLocation());
+      if (useBridge) {
+        const { latitude, longitude } = await getCurrentLocationViaBridge();
+        applyLocation(latitude, longitude);
+      } else {
+        const { coords: { latitude, longitude } } = await getCurrentLocation();
+        applyLocation(latitude, longitude);
+      }
     } catch (error) {
       if (isGeolocationPermissionDenied(error)) {
         setLocationHelpOpen(true);
@@ -388,7 +393,7 @@ export const MapView: React.FC<MapViewProps> = ({
         <div className="absolute top-3.5 right-3.5 z-[1000] flex flex-col space-y-2">
           <button
             type="button"
-            onClick={handleGetLocation}
+            onClick={() => void handleGetLocation()}
             disabled={locationLoading}
             title={locationLoading ? 'Определяем местоположение' : 'Моё местоположение'}
             aria-label={locationLoading ? 'Определяем местоположение' : 'Моё местоположение'}
@@ -522,7 +527,7 @@ export const MapView: React.FC<MapViewProps> = ({
             <div className="space-y-2">
               <button
                 type="button"
-                onClick={handleGetLocation}
+                onClick={() => void handleGetLocation(true)}
                 disabled={locationLoading}
                 className="w-full h-11 rounded-2xl bg-[#008E3A] text-white text-sm font-semibold disabled:opacity-60"
               >
