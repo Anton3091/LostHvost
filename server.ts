@@ -89,6 +89,7 @@ app.use((req, res, next) => { req.requestId = crypto.randomUUID(); res.setHeader
 app.use((req, res, next) => { if (production && !['GET', 'HEAD', 'OPTIONS'].includes(req.method)) { const origin = req.header('origin'); if (origin && origin !== appUrl) return res.status(403).json({ error: 'Недопустимый источник запроса' }); } next(); });
 app.use('/api', rateLimit({ windowMs: 60_000, limit: Number(process.env.API_RATE_LIMIT || 120), standardHeaders: 'draft-7', legacyHeaders: false }));
 const authLimit = rateLimit({ windowMs: 10 * 60_000, limit: 10, standardHeaders: 'draft-7', legacyHeaders: false });
+const geolocationDiagnosticsLimit = rateLimit({ windowMs: 60_000, limit: 10, standardHeaders: 'draft-7', legacyHeaders: false });
 app.use('/uploads', express.static(uploadsDir, { maxAge: '30d', immutable: true, fallthrough: false }));
 
 app.use((req, _res, next) => {
@@ -106,6 +107,58 @@ const blocked = (user: AppUser) => {
   if (user.blockUntil !== 'forever' && Date.parse(user.blockUntil) <= Date.now()) { db.prepare('UPDATE users SET blocked_until=NULL WHERE id=?').run(user.id); return false; }
   return true;
 };
+
+app.post('/api/client-events/geolocation', geolocationDiagnosticsLimit, (req, res) => {
+  const phases = new Set(['start', 'permission', 'success', 'error', 'stalled']);
+  const stages = new Set(['initial', 'precise']);
+  const permissionStates = new Set(['granted', 'denied', 'prompt', 'unsupported', 'query-error', 'unknown']);
+  const platforms = new Set(['iPhone', 'iPad', 'Mac', 'other']);
+  const visibilityStates = new Set(['visible', 'hidden', 'prerender', 'unloaded']);
+  const cleanText = (value: unknown, maxLength: number) => typeof value === 'string'
+    ? value.replace(/[\u0000-\u001f\u007f]/g, ' ').trim().slice(0, maxLength)
+    : '';
+  const attemptId = cleanText(req.body?.attemptId, 80);
+  const phase = cleanText(req.body?.phase, 20);
+  const stage = cleanText(req.body?.stage, 20);
+
+  if (!/^[a-zA-Z0-9_-]{1,80}$/.test(attemptId) || !phases.has(phase) || !stages.has(stage)) {
+    return res.status(400).json({ error: 'Некорректное событие геолокации' });
+  }
+
+  const permissionState = cleanText(req.body?.permissionState, 20);
+  const platform = cleanText(req.body?.platform, 20);
+  const visibilityState = cleanText(req.body?.visibilityState, 20);
+  const rawDuration = Number(req.body?.durationMs);
+  const durationMs = Number.isFinite(rawDuration) ? Math.max(0, Math.min(120_000, Math.round(rawDuration))) : undefined;
+  const rawErrorCode = Number(req.body?.errorCode);
+  const errorCode = [1, 2, 3].includes(rawErrorCode) ? String(rawErrorCode) : phase === 'stalled' ? 'STALLED' : undefined;
+  const details = JSON.stringify({
+    attemptId,
+    phase,
+    stage,
+    permissionState: permissionStates.has(permissionState) ? permissionState : 'unknown',
+    platform: platforms.has(platform) ? platform : 'other',
+    osVersion: /^\d+(?:\.\d+){0,3}$/.test(String(req.body?.osVersion || '')) ? String(req.body.osVersion) : 'unknown',
+    isStandalone: req.body?.isStandalone === true,
+    isSecureContext: req.body?.isSecureContext === true,
+    visibilityState: visibilityStates.has(visibilityState) ? visibilityState : 'unknown',
+    errorMessage: cleanText(req.body?.errorMessage, 200) || undefined
+  });
+
+  // Coordinates and the full User-Agent are intentionally neither accepted nor stored.
+  log(
+    req,
+    'GEOLOCATION_CLIENT',
+    'Geolocation',
+    details,
+    phase === 'success' ? 'success' : ['error', 'stalled'].includes(phase) ? 'failure' : 'info',
+    undefined,
+    undefined,
+    errorCode,
+    durationMs
+  );
+  res.status(204).end();
+});
 
 async function verifyCaptcha(token: unknown, ip: string) {
   const secret = process.env.SMARTCAPTCHA_SERVER_KEY;
