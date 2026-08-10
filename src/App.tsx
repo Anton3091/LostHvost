@@ -6,11 +6,13 @@ import { ProfileView } from './components/ProfileView';
 import { AuthModal } from './components/AuthModal';
 import { BottomNav } from './components/BottomNav';
 import { PublicAdItem, User, GeoSubscription, AdItem, SystemLog } from './types';
+import { supportEmail } from './config';
 
 async function jsonFetch(url: string, options?: RequestInit) {
   const response = await fetch(url, options);
   const data = await response.json().catch(() => ({}));
   if (!response.ok) throw new Error(data.error || 'Сервер временно недоступен');
+  if (data && typeof data === 'object' && !Array.isArray(data)) data.requestId = response.headers.get('x-request-id') || data.requestId;
   return data;
 }
 
@@ -26,6 +28,7 @@ export default function App() {
   const [ads, setAds] = useState<PublicAdItem[]>([]);
   const [selectedAd, setSelectedAd] = useState<PublicAdItem | null>(null);
   const [userAds, setUserAds] = useState<AdItem[]>([]);
+  const [userAdsLoading, setUserAdsLoading] = useState(true);
   const [showCreateWizard, setShowCreateWizard] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [prefillAdData, setPrefillAdData] = useState<any | null>(null);
@@ -52,7 +55,8 @@ export default function App() {
   }, []);
 
   const fetchUserData = useCallback(async () => {
-    if (!currentUser) { setUserAds([]); setGeoSub(null); return; }
+    if (!currentUser) { setUserAds([]); setGeoSub(null); setUserAdsLoading(false); return; }
+    setUserAdsLoading(true);
     try {
       const [subData, adData] = await Promise.all([jsonFetch('/api/subscription'), jsonFetch('/api/user/ads')]);
       setGeoSub(subData.subscription || null); setUserAds(adData.ads || []);
@@ -61,6 +65,7 @@ export default function App() {
         setMasterUsers(usersData.users || []); setSystemLogs(logsData.logs || []);
       }
     } catch (error) { console.error(error); }
+    finally { setUserAdsLoading(false); }
   }, [currentUser]);
 
   useEffect(() => { fetchAds(); }, [fetchAds]);
@@ -75,8 +80,15 @@ export default function App() {
   const handleChangePassword = async (currentPassword: string, newPassword: string) => { await jsonFetch('/api/auth/password/change', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ currentPassword, newPassword }) }); };
   const handleRequestPhone = async (adId: string, captchaToken: string) => (await jsonFetch(`/api/ads/${adId}/phone`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ captchaToken }) })).phone;
   const handleSubmitComplaint = async (adId: string, reason: string, captchaToken: string) => { await jsonFetch(`/api/ads/${adId}/complaint`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ captchaToken, reason }) }); fetchAds(); };
-  const handleCreateAdSubmit = async (adData: any) => { const data = await jsonFetch('/api/ads', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(adData) }); fetchAds(); fetchUserData(); return { status: data.status, ad: data.ad }; };
+  const handleCreateAdSubmit = async (adData: any) => {
+    const url = adData.id ? `/api/ads/${adData.id}` : '/api/ads';
+    const method = adData.id ? 'PUT' : 'POST';
+    const data = await jsonFetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(adData) });
+    fetchAds(); fetchUserData();
+    return { status: data.status, ad: data.ad, requestId: data.requestId };
+  };
   const handleUnpublishAd = async (adId: string) => { await jsonFetch(`/api/ads/${adId}/unpublish`, { method: 'POST' }); fetchAds(); fetchUserData(); };
+  const handleRepublishAd = async (adId: string) => { await jsonFetch(`/api/ads/${adId}/republish`, { method: 'POST' }); fetchAds(); fetchUserData(); };
   const handleSelectAd = async (ad: PublicAdItem) => { try { const data = await jsonFetch(`/api/ads/${ad.id}`); setSelectedAd(data.ad); } catch (error: any) { alert(error.message); } };
   const handleSaveSubscription = async (lat: number, lng: number, radius: number) => { const data = await jsonFetch('/api/subscription', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ lat, lng, radius }) }); setGeoSub(data.subscription); };
   const handleDeleteSubscription = async () => { await jsonFetch('/api/subscription', { method: 'DELETE' }); setGeoSub(null); };
@@ -91,16 +103,42 @@ export default function App() {
     const subscription = await registration.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: urlBase64ToUint8Array(publicKey) });
     await jsonFetch('/api/push/subscribe', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(subscription) });
   };
-  const handleUpdateNotificationSettings = async (push: boolean, email: boolean) => { if (push) await enablePush(); const data = await jsonFetch('/api/user/settings', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ push, email }) }); setCurrentUser(data.user); if (!push) setGeoSub(null); };
+  const handleUpdateNotificationSettings = async (push: boolean, email: boolean, telegram: boolean) => { if (push) await enablePush(); const data = await jsonFetch('/api/user/settings', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ push, email, telegram }) }); setCurrentUser(data.user); if (!push) setGeoSub(null); };
+  const handleCreateTelegramLink = async () => {
+    const telegramWindow = window.open('about:blank', '_blank');
+    try {
+      const data = await jsonFetch('/api/integrations/telegram/link');
+      if (telegramWindow) telegramWindow.location.href = data.url;
+      else window.location.href = data.url;
+    } catch (error) {
+      telegramWindow?.close();
+      throw error;
+    }
+  };
+  const handleReportModerationIssue = (ad: any, requestId?: string) => {
+    const metadata = [
+      'Здравствуйте! Объявление отклонено, нужна помощь с проверкой.',
+      '',
+      `ID объявления: ${ad?.id || 'неизвестен'}`,
+      `Request ID: ${requestId || 'неизвестен'}`,
+      `Статус: ${ad?.status || 'rejected'}`,
+      `Дата: ${new Date().toISOString()}`,
+      `Страница: ${window.location.href}`,
+      `Браузер: ${navigator.userAgent}`,
+      '',
+      'Опишите проблему здесь:'
+    ].join('\n');
+    window.location.href = `mailto:${supportEmail}?subject=${encodeURIComponent('Проблема с модерацией объявления')}&body=${encodeURIComponent(metadata)}`;
+  };
   const handleMasterBlockUser = async (targetUserId: string, blockUntil?: string) => { await jsonFetch('/api/master/block', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ targetUserId, blockUntil }) }); fetchUserData(); fetchAds(); };
   const handleMasterUnblockUser = async (targetUserId: string) => { await jsonFetch('/api/master/unblock', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ targetUserId }) }); fetchUserData(); };
   const handleCreateClick = () => { if (!currentUser) setShowAuthModal(true); else { setPrefillAdData(null); setShowCreateWizard(true); } };
 
   return <div className="app-shell min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col font-sans pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]">
     <BottomNav activeScreen={activeScreen} onNavigate={setActiveScreen} onCreateAdClick={handleCreateClick} currentUser={currentUser} onOpenAuth={() => setShowAuthModal(true)} />
-    <main className="flex-1 pb-20">{activeScreen === 'map' ? <MapView ads={ads} onSelectAd={handleSelectAd} onViewportChange={fetchAds} geoSubscription={geoSub} onSaveSubscription={handleSaveSubscription} onDeleteSubscription={handleDeleteSubscription} isLoggedIn={Boolean(currentUser)} onOpenAuth={() => setShowAuthModal(true)} /> : currentUser ? <ProfileView user={currentUser} onLogout={handleLogout} onDeleteAccount={handleDeleteAccount} onChangePassword={handleChangePassword} userAds={userAds} onUnpublishAd={handleUnpublishAd} onPrefillCreateAd={ad => { setPrefillAdData(ad); setShowCreateWizard(true); }} onUpdateNotificationSettings={handleUpdateNotificationSettings} masterUsersList={masterUsers} onMasterBlockUser={handleMasterBlockUser} onMasterUnblockUser={handleMasterUnblockUser} systemLogs={systemLogs} /> : <div className="p-8 text-center"><button onClick={() => setShowAuthModal(true)} className="bg-[#008E3A] text-white font-semibold px-6 py-3 rounded-xl shadow cursor-pointer">Войти в профиль</button></div>}</main>
+    <main className="flex-1 pb-20">{activeScreen === 'map' ? <MapView ads={ads} onSelectAd={handleSelectAd} onViewportChange={fetchAds} geoSubscription={geoSub} onSaveSubscription={handleSaveSubscription} onDeleteSubscription={handleDeleteSubscription} isLoggedIn={Boolean(currentUser)} onOpenAuth={() => setShowAuthModal(true)} pushEnabled={currentUser?.notificationSettings.push ?? false} /> : currentUser ? <ProfileView user={currentUser} onLogout={handleLogout} onDeleteAccount={handleDeleteAccount} onChangePassword={handleChangePassword} userAds={userAds} userAdsLoading={userAdsLoading} onUnpublishAd={handleUnpublishAd} onRepublishAd={handleRepublishAd} onPrefillCreateAd={ad => { setPrefillAdData(ad); setShowCreateWizard(true); }} onUpdateNotificationSettings={handleUpdateNotificationSettings} onCreateTelegramLink={handleCreateTelegramLink} onOpenDeveloperContact={() => { window.location.href = `mailto:${supportEmail}`; }} masterUsersList={masterUsers} onMasterBlockUser={handleMasterBlockUser} onMasterUnblockUser={handleMasterUnblockUser} systemLogs={systemLogs} /> : <div className="p-8 text-center"><button onClick={() => setShowAuthModal(true)} className="bg-[#008E3A] text-white font-semibold px-6 py-3 rounded-xl shadow cursor-pointer">Войти в профиль</button></div>}</main>
     {selectedAd ? <AdDetailsModal ad={selectedAd} onClose={() => setSelectedAd(null)} currentUser={currentUser} onOpenAuth={() => setShowAuthModal(true)} onRequestPhone={handleRequestPhone} onSubmitComplaint={handleSubmitComplaint} /> : null}
-    {showCreateWizard ? <CreateAdWizard onClose={() => setShowCreateWizard(false)} onSubmit={handleCreateAdSubmit} prefillData={prefillAdData} /> : null}
+    {showCreateWizard ? <CreateAdWizard onClose={() => setShowCreateWizard(false)} onSubmit={handleCreateAdSubmit} onReportIssue={handleReportModerationIssue} prefillData={prefillAdData} /> : null}
     {showAuthModal ? <AuthModal onClose={() => setShowAuthModal(false)} onLoginSuccess={user => { setCurrentUser(user); setShowAuthModal(false); }} onLoginApi={handleLoginApi} onRegisterApi={handleRegisterApi} onRecoveryApi={handleRecoveryApi} onYandexApi={handleYandexApi} /> : null}
   </div>;
 }

@@ -32,7 +32,8 @@ db.exec(`
 CREATE TABLE IF NOT EXISTS users (
  id TEXT PRIMARY KEY, email TEXT NOT NULL UNIQUE, name TEXT NOT NULL, password_hash TEXT,
  role TEXT NOT NULL DEFAULT 'user', auth_provider TEXT NOT NULL DEFAULT 'email',
- blocked_until TEXT, push_enabled INTEGER NOT NULL DEFAULT 1, email_enabled INTEGER NOT NULL DEFAULT 1,
+ blocked_until TEXT, push_enabled INTEGER NOT NULL DEFAULT 0, email_enabled INTEGER NOT NULL DEFAULT 0,
+ telegram_enabled INTEGER NOT NULL DEFAULT 0, telegram_chat_id TEXT,
  created_at TEXT NOT NULL
 );
 CREATE TABLE IF NOT EXISTS sessions (token_hash TEXT PRIMARY KEY, user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE, expires_at TEXT NOT NULL);
@@ -57,15 +58,22 @@ CREATE TABLE IF NOT EXISTS push_subscriptions (user_id TEXT NOT NULL REFERENCES 
 `);
 const userColumns = db.prepare('PRAGMA table_info(users)').all() as Array<{ name: string }>;
 if (!userColumns.some(column => column.name === 'yandex_avatar_id')) db.exec('ALTER TABLE users ADD COLUMN yandex_avatar_id TEXT');
+if (!userColumns.some(column => column.name === 'telegram_enabled')) db.exec('ALTER TABLE users ADD COLUMN telegram_enabled INTEGER NOT NULL DEFAULT 0');
+if (!userColumns.some(column => column.name === 'telegram_chat_id')) db.exec('ALTER TABLE users ADD COLUMN telegram_chat_id TEXT');
+const databaseVersion = Number(db.pragma('user_version', { simple: true }));
+if (databaseVersion < 2) {
+  db.prepare('UPDATE users SET push_enabled=0,email_enabled=0').run();
+  db.pragma('user_version = 2');
+}
 
-type AppUser = { id: string; email: string; name: string; role: 'user' | 'master'; authProvider: 'email' | 'yandex'; avatarUrl: string | null; isBlocked: boolean; blockUntil: string | null; notificationSettings: { push: boolean; email: boolean }; createdAt: string };
+type AppUser = { id: string; email: string; name: string; role: 'user' | 'master'; authProvider: 'email' | 'yandex'; avatarUrl: string | null; isBlocked: boolean; blockUntil: string | null; notificationSettings: { push: boolean; email: boolean; telegram: boolean }; telegramConnected: boolean; createdAt: string };
 declare global { namespace Express { interface Request { user?: AppUser; requestId?: string } } }
 
 const nowIso = () => new Date().toISOString();
 const id = (prefix: string) => `${prefix}_${crypto.randomUUID()}`;
 const hash = (value: string) => crypto.createHmac('sha256', process.env.SESSION_SECRET || 'development-only').update(value).digest('hex');
-const rowUser = (row: any): AppUser => ({ id: row.id, email: row.email, name: row.name, role: row.role, authProvider: row.auth_provider, avatarUrl: row.yandex_avatar_id ? `https://avatars.yandex.net/get-yapic/${encodeURI(row.yandex_avatar_id)}/islands-200` : null, isBlocked: Boolean(row.blocked_until), blockUntil: row.blocked_until, notificationSettings: { push: Boolean(row.push_enabled), email: Boolean(row.email_enabled) }, createdAt: row.created_at });
-const publicAd = (row: any, userId?: string) => ({ id: row.id, type: row.type, category: row.category, photos: JSON.parse(row.photos), petName: row.pet_name || '', contactName: row.contact_name, description: row.description, lat: row.lat, lng: row.lng, createdAt: row.created_at, expiresAt: row.expires_at, status: row.status, ...(userId === row.user_id ? { viewsCount: row.views_count, isAuthor: true, unpublishedAt: row.unpublished_at } : {}) });
+const rowUser = (row: any): AppUser => ({ id: row.id, email: row.email, name: row.name, role: row.role, authProvider: row.auth_provider, avatarUrl: row.yandex_avatar_id ? `https://avatars.yandex.net/get-yapic/${encodeURI(row.yandex_avatar_id)}/islands-200` : null, isBlocked: Boolean(row.blocked_until), blockUntil: row.blocked_until, notificationSettings: { push: Boolean(row.push_enabled), email: Boolean(row.email_enabled), telegram: Boolean(row.telegram_enabled && row.telegram_chat_id) }, telegramConnected: Boolean(row.telegram_chat_id), createdAt: row.created_at });
+const publicAd = (row: any, userId?: string) => ({ id: row.id, type: row.type, category: row.category, photos: JSON.parse(row.photos), petName: row.pet_name || '', contactName: row.contact_name, description: row.description, lat: row.lat, lng: row.lng, createdAt: row.created_at, expiresAt: row.expires_at, status: row.status, ...(userId === row.user_id ? { viewsCount: row.views_count, isAuthor: true, unpublishedAt: row.unpublished_at, phone: row.phone, rejectionReason: row.rejection_reason } : {}) });
 
 function log(req: Request | undefined, type: string, component: string, details: string, result = 'info', userId?: string, adId?: string, errorCode?: string, durationMs?: number) {
   db.prepare('INSERT INTO logs VALUES (?,?,?,?,?,?,?,?,?,?,?)').run(id('log'), nowIso(), type, req?.requestId || null, component, userId || null, adId || null, result, errorCode || null, durationMs || null, details.slice(0, 1000));
@@ -277,23 +285,42 @@ const smtp = process.env.SMTP_HOST ? nodemailer.createTransport({ host: process.
 if (process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY) webpush.setVapidDetails(process.env.VAPID_SUBJECT || 'mailto:admin@losthvost.ru', process.env.VAPID_PUBLIC_KEY, process.env.VAPID_PRIVATE_KEY);
 
 function queueEmail(recipient: string, subject: string, html: string) { if (smtp) db.prepare('INSERT INTO email_queue VALUES (?,?,?,?,?,?,?)').run(id('mail'), recipient, subject, html, 0, nowIso(), null); }
+async function sendTelegramUserNotification(chatId: string, title: string, message: string, adId?: string) {
+  if (!process.env.TELEGRAM_BOT_TOKEN) return;
+  const text = `[LostHvost] ${title}\n${message}${adId ? `\n${appUrl}/?ad=${encodeURIComponent(adId)}` : ''}`;
+  const response = await fetch(`https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendMessage`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ chat_id: chatId, text })
+  });
+  if (!response.ok) throw new Error(`Telegram API ${response.status}`);
+}
 function notify(userId: string, title: string, message: string, adId?: string) {
   db.prepare('INSERT INTO notifications VALUES (?,?,?,?,?,?,?)').run(id('notif'), userId, title, message, nowIso(), 0, adId || null);
-  const user: any = db.prepare('SELECT email,email_enabled FROM users WHERE id=?').get(userId);
+  const user: any = db.prepare('SELECT email,email_enabled,telegram_enabled,telegram_chat_id FROM users WHERE id=?').get(userId);
   if (user?.email_enabled) queueEmail(user.email, title, `<p>${message}</p><p><a href="${appUrl}">Открыть LostHvost</a></p>`);
+  if (user?.telegram_enabled && user.telegram_chat_id) sendTelegramUserNotification(user.telegram_chat_id, title, message, adId).catch(error => {
+    log(undefined, 'TELEGRAM_ERROR', 'Telegram', error.message, 'failure', userId, adId, 'TELEGRAM_SEND_FAILED');
+    alertTelegram('telegram-user', 'Ошибка отправки пользовательского уведомления в Telegram');
+  });
 }
 
 async function processEmailQueue() {
   if (!smtp) return;
   const jobs: any[] = db.prepare('SELECT * FROM email_queue WHERE sent_at IS NULL AND next_attempt_at<=? ORDER BY next_attempt_at LIMIT 10').all(nowIso());
-  for (const job of jobs) try { await smtp.sendMail({ from: process.env.SMTP_FROM || 'LostHvost <noreply@notify.myserials.space>', to: job.recipient, subject: job.subject, html: job.html }); db.prepare('UPDATE email_queue SET sent_at=? WHERE id=?').run(nowIso(), job.id); } catch (error: any) { const attempts = job.attempts + 1; db.prepare('UPDATE email_queue SET attempts=?,next_attempt_at=? WHERE id=?').run(attempts, new Date(Date.now() + Math.min(3600000, 30000 * 2 ** attempts)).toISOString(), job.id); log(undefined, 'EMAIL_ERROR', 'EmailWorker', error.message, 'failure', undefined, undefined, 'SMTP_ERROR'); alertTelegram('smtp', 'Ошибка отправки email'); }
+  for (const job of jobs) try { await smtp.sendMail({ from: process.env.SMTP_FROM || 'LostHvost <noreply@losthvost.ru>', to: job.recipient, subject: job.subject, html: job.html }); db.prepare('UPDATE email_queue SET sent_at=? WHERE id=?').run(nowIso(), job.id); } catch (error: any) { const attempts = job.attempts + 1; db.prepare('UPDATE email_queue SET attempts=?,next_attempt_at=? WHERE id=?').run(attempts, new Date(Date.now() + Math.min(3600000, 30000 * 2 ** attempts)).toISOString(), job.id); log(undefined, 'EMAIL_ERROR', 'EmailWorker', error.message, 'failure', undefined, undefined, 'SMTP_ERROR'); alertTelegram('smtp', 'Ошибка отправки email'); }
 }
 
-async function processPhotos(photos: unknown): Promise<string[]> {
+async function processPhotos(photos: unknown, preservedPhotos: string[] = []): Promise<string[]> {
   if (!Array.isArray(photos) || photos.length < 1 || photos.length > 3) throw new Error('Требуется от 1 до 3 фотографий');
   const result: string[] = [];
+  const createdPhotos: string[] = [];
   try {
     for (const photo of photos) {
+      if (typeof photo === 'string' && preservedPhotos.includes(photo)) {
+        result.push(photo);
+        continue;
+      }
       if (typeof photo !== 'string' || !/^data:image\/(jpeg|png|webp);base64,/.test(photo)) throw new Error('Поддерживаются только JPEG, PNG и WebP');
       const input = Buffer.from(photo.slice(photo.indexOf(',') + 1), 'base64');
       if (input.length > 10 * 1024 * 1024) throw new Error('Размер фотографии не должен превышать 10 МБ');
@@ -304,10 +331,19 @@ async function processPhotos(photos: unknown): Promise<string[]> {
       const name = crypto.randomUUID();
       await sharp(input).rotate().resize({ width: 1920, height: 1920, fit: 'inside', withoutEnlargement: true }).webp({ quality: 84 }).toFile(path.join(uploadsDir, `${name}.webp`));
       await sharp(input).rotate().resize(480, 480, { fit: 'cover' }).webp({ quality: 78 }).toFile(path.join(uploadsDir, `${name}-thumb.webp`));
-      result.push(`/uploads/${name}.webp`);
+      const url = `/uploads/${name}.webp`;
+      result.push(url);
+      createdPhotos.push(url);
     }
     return result;
-  } catch (error) { for (const url of result) { const base = path.basename(url, '.webp'); for (const suffix of ['.webp', '-thumb.webp']) fs.rmSync(path.join(uploadsDir, base + suffix), { force: true }); } throw error; }
+  } catch (error) { for (const url of createdPhotos) { const base = path.basename(url, '.webp'); for (const suffix of ['.webp', '-thumb.webp']) fs.rmSync(path.join(uploadsDir, base + suffix), { force: true }); } throw error; }
+}
+
+function removePhotos(photos: string[]) {
+  for (const url of photos) {
+    const base = path.basename(url, '.webp');
+    for (const suffix of ['.webp', '-thumb.webp']) fs.rmSync(path.join(uploadsDir, base + suffix), { force: true });
+  }
 }
 
 async function moderate(ad: any, complaintReason?: string) {
@@ -337,7 +373,7 @@ async function approveAd(ad: any) {
   for (const sub of subs) if (distance(sub.lat, sub.lng, ad.lat, ad.lng) <= sub.radius) notify(sub.user_id, 'Новое объявление рядом', 'В вашей зоне геоподписки появилось новое объявление.', ad.id);
 }
 async function runModeration(ad: any) {
-  try { const result = await moderate(ad); if (result.approved) { await approveAd(ad); log(undefined, 'AD_MODERATED_APPROVED', 'Moderation', 'Объявление одобрено', 'success', ad.user_id, ad.id); } else { db.prepare("UPDATE ads SET status='rejected',rejection_reason=?,next_moderation_at=NULL WHERE id=?").run('Объявление не соответствует правилам сервиса', ad.id); log(undefined, 'AD_MODERATED_REJECTED', 'Moderation', 'Объявление отклонено', 'warning', ad.user_id, ad.id); } } catch (error: any) { const attempts = ad.moderation_attempts + 1; db.prepare('UPDATE ads SET moderation_attempts=?,next_moderation_at=? WHERE id=?').run(attempts, new Date(Date.now() + Math.min(6 * 3600000, 60000 * 2 ** attempts)).toISOString(), ad.id); log(undefined, 'MODERATION_RETRY', 'Moderation', error.message, 'failure', ad.user_id, ad.id, 'MODEL_UNAVAILABLE'); alertTelegram('moderation', 'Модель модерации недоступна'); }
+  try { const result = await moderate(ad); if (result.approved) { await approveAd(ad); notify(ad.user_id, 'Объявление опубликовано', 'Объявление прошло модерацию и опубликовано на карте.', ad.id); log(undefined, 'AD_MODERATED_APPROVED', 'Moderation', 'Объявление одобрено', 'success', ad.user_id, ad.id); } else { db.prepare("UPDATE ads SET status='rejected',rejection_reason=?,next_moderation_at=NULL WHERE id=?").run('Объявление не соответствует правилам сервиса', ad.id); notify(ad.user_id, 'Объявление отклонено', 'Объявление не прошло модерацию. Откройте профиль, чтобы изменить его.', ad.id); log(undefined, 'AD_MODERATED_REJECTED', 'Moderation', 'Объявление отклонено', 'warning', ad.user_id, ad.id); } } catch (error: any) { const attempts = ad.moderation_attempts + 1; db.prepare('UPDATE ads SET moderation_attempts=?,next_moderation_at=? WHERE id=?').run(attempts, new Date(Date.now() + Math.min(6 * 3600000, 60000 * 2 ** attempts)).toISOString(), ad.id); log(undefined, 'MODERATION_RETRY', 'Moderation', error.message, 'failure', ad.user_id, ad.id, 'MODEL_UNAVAILABLE'); alertTelegram('moderation', 'Модель модерации недоступна'); }
 }
 
 app.get('/health/live', (_req, res) => res.json({ status: 'ok' }));
@@ -362,10 +398,10 @@ app.post('/api/ads/:id/unpublish', requireUser, (req, res) => { const ad: any = 
 app.post('/api/ads/:id/complaint', async (req, res) => { if (!await verifyCaptcha(req.body.captchaToken, req.ip || '')) return res.status(400).json({ error: 'CAPTCHA не пройдена' }); const ad: any = db.prepare("SELECT * FROM ads WHERE id=? AND status='active'").get(req.params.id); if (!ad) return res.status(404).json({ error: 'Объявление не найдено' }); db.prepare('UPDATE ads SET complaint_count=complaint_count+1 WHERE id=?').run(ad.id); log(req, 'COMPLAINT_RECEIVED', 'Complaint', 'Получена жалоба', 'info', req.user?.id, ad.id); try { const result = await moderate(ad, String(req.body.reason || 'Неподобающий контент')); if (result.shouldRemove) { db.prepare("UPDATE ads SET status='unpublished',unpublished_at=? WHERE id=?").run(nowIso(), ad.id); notify(ad.user_id, 'Объявление снято', 'Объявление снято после автоматической проверки жалобы.', ad.id); } } catch (error: any) { log(req, 'COMPLAINT_MODEL_ERROR', 'Complaint', error.message, 'failure', undefined, ad.id); alertTelegram('complaint-model', 'Ошибка повторной модерации'); } res.json({ success: true }); });
 
 app.get('/api/subscription', requireUser, (req, res) => res.json({ subscription: db.prepare('SELECT user_id userId,lat,lng,radius,active isActive,created_at createdAt FROM subscriptions WHERE user_id=? AND active=1').get(req.user!.id) || null }));
-app.post('/api/subscription', requireUser, (req, res) => { const radius = Number(req.body.radius), lat = Number(req.body.lat), lng = Number(req.body.lng); if (![100,500,1000,2000].includes(radius) || !Number.isFinite(lat) || !Number.isFinite(lng)) return res.status(400).json({ error: 'Некорректная геоподписка' }); db.prepare('INSERT INTO subscriptions VALUES (?,?,?,?,1,?) ON CONFLICT(user_id) DO UPDATE SET lat=excluded.lat,lng=excluded.lng,radius=excluded.radius,active=1,created_at=excluded.created_at').run(req.user!.id, lat, lng, radius, nowIso()); res.json({ subscription: { userId: req.user!.id, lat, lng, radius, isActive: true, createdAt: nowIso() } }); });
+app.post('/api/subscription', requireUser, (req, res) => { const radius = Number(req.body.radius), lat = Number(req.body.lat), lng = Number(req.body.lng); if (![1000,2000,5000,10000].includes(radius) || !Number.isFinite(lat) || !Number.isFinite(lng)) return res.status(400).json({ error: 'Некорректная геоподписка' }); db.prepare('INSERT INTO subscriptions VALUES (?,?,?,?,1,?) ON CONFLICT(user_id) DO UPDATE SET lat=excluded.lat,lng=excluded.lng,radius=excluded.radius,active=1,created_at=excluded.created_at').run(req.user!.id, lat, lng, radius, nowIso()); res.json({ subscription: { userId: req.user!.id, lat, lng, radius, isActive: true, createdAt: nowIso() } }); });
 app.delete('/api/subscription', requireUser, (req, res) => { db.prepare('DELETE FROM subscriptions WHERE user_id=?').run(req.user!.id); res.json({ success: true }); });
 app.get('/api/notifications', requireUser, (req, res) => res.json({ notifications: db.prepare('SELECT id,user_id userId,title,message,created_at date,read,ad_id adId FROM notifications WHERE user_id=? ORDER BY created_at DESC LIMIT 100').all(req.user!.id) }));
-app.put('/api/user/settings', requireUser, (req, res) => { const push = Boolean(req.body.push), email = Boolean(req.body.email); db.prepare('UPDATE users SET push_enabled=?,email_enabled=? WHERE id=?').run(Number(push), Number(email), req.user!.id); if (!push) { db.prepare('DELETE FROM subscriptions WHERE user_id=?').run(req.user!.id); db.prepare('DELETE FROM push_subscriptions WHERE user_id=?').run(req.user!.id); } res.json({ user: rowUser(db.prepare('SELECT * FROM users WHERE id=?').get(req.user!.id)) }); });
+app.put('/api/user/settings', requireUser, (req, res) => { const push = Boolean(req.body.push), email = Boolean(req.body.email); const current: any = db.prepare('SELECT telegram_chat_id FROM users WHERE id=?').get(req.user!.id); const telegram = Boolean(req.body.telegram) && Boolean(current?.telegram_chat_id); db.prepare('UPDATE users SET push_enabled=?,email_enabled=?,telegram_enabled=? WHERE id=?').run(Number(push), Number(email), Number(telegram), req.user!.id); if (!push) { db.prepare('DELETE FROM subscriptions WHERE user_id=?').run(req.user!.id); db.prepare('DELETE FROM push_subscriptions WHERE user_id=?').run(req.user!.id); } res.json({ user: rowUser(db.prepare('SELECT * FROM users WHERE id=?').get(req.user!.id)) }); });
 app.get('/api/push/public-key', (_req, res) => res.json({ publicKey: process.env.VAPID_PUBLIC_KEY || null }));
 app.post('/api/push/subscribe', requireUser, (req, res) => { if (!req.body?.endpoint) return res.status(400).json({ error: 'Некорректная подписка' }); db.prepare('INSERT INTO push_subscriptions VALUES (?,?,?,?) ON CONFLICT(endpoint) DO UPDATE SET user_id=excluded.user_id,payload=excluded.payload').run(req.user!.id, req.body.endpoint, JSON.stringify(req.body), nowIso()); res.status(201).json({ success: true }); });
 
@@ -377,6 +413,77 @@ app.get('/api/master/users', requireMaster, (_req, res) => res.json({ users: db.
 app.post('/api/master/block', requireMaster, (req, res) => { const until = req.body.blockUntil ? new Date(req.body.blockUntil).toISOString() : 'forever'; db.transaction(() => { db.prepare('UPDATE users SET blocked_until=? WHERE id=?').run(until, req.body.targetUserId); db.prepare("UPDATE ads SET status='unpublished',unpublished_at=? WHERE user_id=? AND status='active'").run(nowIso(), req.body.targetUserId); })(); notify(req.body.targetUserId, 'Аккаунт заблокирован', 'Доступ к функциям сервиса ограничен.'); log(req, 'MASTER_BLOCK_USER', 'Master', 'Пользователь заблокирован', 'warning', req.body.targetUserId); res.json({ success: true }); });
 app.post('/api/master/unblock', requireMaster, (req, res) => { db.prepare('UPDATE users SET blocked_until=NULL WHERE id=?').run(req.body.targetUserId); log(req, 'MASTER_UNBLOCK_USER', 'Master', 'Блокировка снята', 'success', req.body.targetUserId); res.json({ success: true }); });
 app.get('/api/logs', requireMaster, (_req, res) => res.json({ logs: db.prepare('SELECT id,created_at timestamp,type,request_id requestId,component,user_id userId,ad_id adId,result,error_code errorCode,duration_ms durationMs,details FROM logs ORDER BY created_at DESC LIMIT 100').all() }));
+
+app.put('/api/ads/:id', requireUser, async (req, res) => {
+  const ad: any = db.prepare('SELECT * FROM ads WHERE id=?').get(req.params.id);
+  if (!ad || ad.user_id !== req.user!.id) return res.status(404).json({ error: 'Объявление не найдено' });
+  if (ad.status !== 'rejected') return res.status(409).json({ error: 'Изменить можно только отклонённое объявление' });
+  if (blocked(req.user!)) return res.status(403).json({ error: 'Аккаунт заблокирован' });
+  if (!await verifyCaptcha(req.body.captchaToken, req.ip || '')) return res.status(400).json({ error: 'CAPTCHA не пройдена' });
+  const dayAgo = new Date(Date.now() - 86400000).toISOString();
+  if ((db.prepare("SELECT count(*) n FROM ads WHERE user_id=? AND status='active'").get(req.user!.id) as any).n >= 3) return res.status(409).json({ error: 'Достигнут лимит трёх активных объявлений' });
+  if ((db.prepare('SELECT count(*) n FROM publish_attempts WHERE user_id=? AND created_at>?').get(req.user!.id, dayAgo) as any).n >= 5) return res.status(429).json({ error: 'Достигнут лимит пяти попыток за 24 часа' });
+  db.prepare('INSERT INTO publish_attempts VALUES (?,?)').run(req.user!.id, nowIso());
+  try {
+    const { type, category, petName, contactName, description } = req.body;
+    const lat = Number(req.body.lat), lng = Number(req.body.lng);
+    const phone = String(req.body.phone || '').replace(/[\s()-]/g, '');
+    if (!['lost', 'found'].includes(type) || !['cat', 'dog', 'other'].includes(category) || (type === 'lost' && !String(petName || '').trim()) || !String(contactName || '').trim() || !String(description || '').trim() || !/^\+[1-9]\d{7,14}$/.test(phone) || !Number.isFinite(lat) || !Number.isFinite(lng) || Math.abs(lat) > 90 || Math.abs(lng) > 180) return res.status(400).json({ error: 'Проверьте обязательные поля и формат телефона' });
+    const oldPhotos: string[] = JSON.parse(ad.photos);
+    const photos = await processPhotos(req.body.photos, oldPhotos);
+    const created = nowIso();
+    db.prepare("UPDATE ads SET type=?,category=?,photos=?,pet_name=?,contact_name=?,phone=?,description=?,lat=?,lng=?,created_at=?,status='pending_moderation',rejection_reason=NULL,moderation_attempts=0,next_moderation_at=?,unpublished_at=NULL WHERE id=?").run(type, category, JSON.stringify(photos), String(petName || '').trim(), String(contactName).trim(), phone, String(description).trim(), lat, lng, created, created, ad.id);
+    removePhotos(oldPhotos.filter(photo => !photos.includes(photo)));
+    const updated: any = db.prepare('SELECT * FROM ads WHERE id=?').get(ad.id);
+    await runModeration(updated);
+    const result: any = db.prepare('SELECT * FROM ads WHERE id=?').get(ad.id);
+    res.status(200).json({ ad: publicAd(result, req.user!.id), status: result.status });
+  } catch (error: any) {
+    res.status(400).json({ error: error.message || 'Не удалось обновить объявление' });
+  }
+});
+
+app.post('/api/ads/:id/republish', requireUser, async (req, res) => {
+  const ad: any = db.prepare('SELECT * FROM ads WHERE id=?').get(req.params.id);
+  if (!ad || ad.user_id !== req.user!.id) return res.status(404).json({ error: 'Объявление не найдено' });
+  if (ad.status !== 'unpublished') return res.status(409).json({ error: 'Опубликовать заново можно только снятое объявление' });
+  if (blocked(req.user!)) return res.status(403).json({ error: 'Аккаунт заблокирован' });
+  const dayAgo = new Date(Date.now() - 86400000).toISOString();
+  if ((db.prepare("SELECT count(*) n FROM ads WHERE user_id=? AND status='active'").get(req.user!.id) as any).n >= 3) return res.status(409).json({ error: 'Достигнут лимит трёх активных объявлений' });
+  if ((db.prepare('SELECT count(*) n FROM publish_attempts WHERE user_id=? AND created_at>?').get(req.user!.id, dayAgo) as any).n >= 5) return res.status(429).json({ error: 'Достигнут лимит пяти попыток за 24 часа' });
+  db.prepare('INSERT INTO publish_attempts VALUES (?,?)').run(req.user!.id, nowIso());
+  const created = nowIso();
+  db.prepare("UPDATE ads SET status='pending_moderation',rejection_reason=NULL,moderation_attempts=0,next_moderation_at=?,unpublished_at=NULL,created_at=? WHERE id=?").run(created, created, ad.id);
+  await runModeration(db.prepare('SELECT * FROM ads WHERE id=?').get(ad.id));
+  const result: any = db.prepare('SELECT * FROM ads WHERE id=?').get(ad.id);
+  res.status(200).json({ ad: publicAd(result, req.user!.id), status: result.status });
+});
+
+app.get('/api/integrations/telegram/link', requireUser, (req, res) => {
+  const username = String(process.env.TELEGRAM_BOT_USERNAME || '').replace(/^@/, '');
+  if (!process.env.TELEGRAM_BOT_TOKEN || !username) return res.status(503).json({ error: 'Telegram пока не настроен' });
+  const token = crypto.randomBytes(24).toString('base64url');
+  db.prepare("DELETE FROM action_tokens WHERE user_id=? AND purpose='telegram_link'").run(req.user!.id);
+  db.prepare('INSERT INTO action_tokens VALUES (?,?,?,?)').run(hash(token), req.user!.id, 'telegram_link', new Date(Date.now() + 15 * 60_000).toISOString());
+  res.json({ url: `https://t.me/${username}?start=${token}` });
+});
+
+app.post('/api/integrations/telegram/webhook', async (req, res) => {
+  const expectedSecret = String(process.env.TELEGRAM_WEBHOOK_SECRET || '');
+  if (expectedSecret && req.header('x-telegram-bot-api-secret-token') !== expectedSecret) return res.status(403).json({ error: 'Доступ запрещён' });
+  const message = req.body?.message;
+  const text = typeof message?.text === 'string' ? message.text : '';
+  const token = text.match(/^\/start(?:@[^\s]+)?\s+([A-Za-z0-9_-]+)$/)?.[1];
+  if (!token || !message?.chat?.id) return res.json({ ok: true });
+  const action: any = db.prepare("SELECT * FROM action_tokens WHERE token_hash=? AND purpose='telegram_link' AND expires_at>? ").get(hash(token), nowIso());
+  if (!action) return res.json({ ok: true });
+  db.transaction(() => {
+    db.prepare('UPDATE users SET telegram_chat_id=?,telegram_enabled=1 WHERE id=?').run(String(message.chat.id), action.user_id);
+    db.prepare('DELETE FROM action_tokens WHERE token_hash=?').run(action.token_hash);
+  })();
+  await sendTelegramUserNotification(String(message.chat.id), 'Telegram подключён', 'Теперь вы будете получать уведомления LostHvost в этом чате.').catch(() => undefined);
+  res.json({ ok: true });
+});
 
 async function background() {
   try {
