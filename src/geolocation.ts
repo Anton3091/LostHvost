@@ -11,8 +11,9 @@ const preciseOptions: PositionOptions = {
 };
 
 const overallTimeoutMs = 45_000;
+const geolocationBridgeOrigin = 'https://www.losthvost.ru';
 
-type GeolocationStage = 'initial' | 'precise';
+type GeolocationStage = 'initial' | 'precise' | 'bridge';
 type GeolocationDiagnosticPhase = 'start' | 'permission' | 'success' | 'error' | 'stalled';
 type GeolocationPermissionState = PermissionState | 'unsupported' | 'query-error' | 'unknown';
 
@@ -71,6 +72,87 @@ export function isStandalonePwa() {
   const standaloneDisplay = window.matchMedia?.('(display-mode: standalone)').matches;
   const appleStandalone = Boolean((navigator as Navigator & { standalone?: boolean }).standalone);
   return Boolean(standaloneDisplay || appleStandalone);
+}
+
+export function getCurrentLocationViaBridge(): Promise<{ latitude: number; longitude: number }> {
+  if (typeof window === 'undefined') return Promise.reject(new Error('GEOLOCATION_BRIDGE_UNAVAILABLE'));
+
+  return new Promise((resolve, reject) => {
+    const requestId = geolocationAttemptId();
+    const startedAt = performance.now();
+    let bridgeWindow: Window | null = null;
+    let timeoutId = 0;
+
+    const report = (phase: GeolocationDiagnosticPhase, error?: Error & { code?: number }) => {
+      reportGeolocationDiagnostic({
+        attemptId: requestId,
+        phase,
+        stage: 'bridge',
+        permissionState: 'unknown',
+        durationMs: Math.max(0, Math.round(performance.now() - startedAt)),
+        ...(error?.code !== undefined ? { errorCode: Number(error.code) } : {}),
+        ...(error?.message ? { errorMessage: error.message } : {})
+      });
+    };
+
+    const cleanup = () => {
+      window.removeEventListener('message', onMessage);
+      window.clearTimeout(timeoutId);
+    };
+    const fail = (message: string, code?: number) => {
+      const error = new Error(message) as Error & { code?: number };
+      if (code !== undefined) error.code = code;
+      report('error', error);
+      cleanup();
+      reject(error);
+    };
+    const onMessage = (event: MessageEvent) => {
+      if (event.origin !== geolocationBridgeOrigin || event.source !== bridgeWindow) return;
+      const data = event.data as {
+        type?: string;
+        requestId?: string;
+        status?: string;
+        latitude?: number;
+        longitude?: number;
+        errorCode?: number;
+        errorMessage?: string;
+      };
+      if (data?.type !== 'losthvost:geo-bridge' || data.requestId !== requestId) return;
+
+      if (data.status === 'success' && Number.isFinite(data.latitude) && Number.isFinite(data.longitude)) {
+        const latitude = Number(data.latitude);
+        const longitude = Number(data.longitude);
+        if (Math.abs(latitude) <= 90 && Math.abs(longitude) <= 180) {
+          report('success');
+          cleanup();
+          resolve({ latitude, longitude });
+          return;
+        }
+      }
+
+      fail(data.errorMessage || 'GEOLOCATION_BRIDGE_FAILED', data.errorCode);
+    };
+
+    window.addEventListener('message', onMessage);
+    bridgeWindow = window.open(
+      `${geolocationBridgeOrigin}/geo-bridge?requestId=${encodeURIComponent(requestId)}`,
+      '_blank',
+      'popup=yes,width=430,height=640'
+    );
+    if (!bridgeWindow) {
+      fail('GEOLOCATION_BRIDGE_BLOCKED');
+      return;
+    }
+    report('start');
+
+    timeoutId = window.setTimeout(() => {
+      bridgeWindow?.close();
+      const error = new Error('GEOLOCATION_BRIDGE_TIMEOUT');
+      report('stalled', error);
+      cleanup();
+      reject(error);
+    }, 60_000);
+  });
 }
 
 export function getCurrentLocation(): Promise<GeolocationPosition> {
