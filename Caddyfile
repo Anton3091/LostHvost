@@ -1,11 +1,5 @@
 www.losthvost.ru {
-  @geoBridge path /geo-bridge
-  handle @geoBridge {
-    reverse_proxy app:3000
-  }
-  handle {
-    redir https://losthvost.ru{uri} permanent
-  }
+  redir https://losthvost.ru{uri} permanent
 }
 
 losthvost.ru {
