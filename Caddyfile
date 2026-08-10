@@ -1,4 +1,8 @@
-losthvost.ru, www.losthvost.ru {
+www.losthvost.ru {
+  redir https://losthvost.ru{uri} permanent
+}
+
+losthvost.ru {
   encode zstd gzip
   header {
     Strict-Transport-Security "max-age=31536000; includeSubDomains"
