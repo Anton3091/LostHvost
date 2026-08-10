@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import L from 'leaflet';
-import { ArrowLeft, ArrowRight, Upload, Trash2, MapPin, Sparkles, CheckCircle2, AlertCircle, Phone, Tag } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Upload, Trash2, MapPin, Sparkles, CheckCircle2, AlertCircle, Phone } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { AdType, AdCategory } from '../types';
 import { CaptchaWidget } from './CaptchaWidget';
@@ -9,17 +9,20 @@ import { getCurrentLocation, isGeolocationPermissionDenied } from '../geolocatio
 
 interface CreateAdWizardProps {
   onClose: () => void;
-  onSubmit: (adData: any) => Promise<{ status: string; ad: any }>;
+  onSubmit: (adData: any) => Promise<{ status: string; ad: any; requestId?: string }>;
+  onReportIssue: (ad: any, requestId?: string) => void;
   prefillData?: any;
 }
 
 export const CreateAdWizard: React.FC<CreateAdWizardProps> = ({
   onClose,
   onSubmit,
+  onReportIssue,
   prefillData
 }) => {
   const isDarkMode = useSystemDarkMode();
   const [step, setStep] = useState(1);
+  const [currentAdId, setCurrentAdId] = useState<string | undefined>(prefillData?.id);
 
   // Form State
   const [type, setType] = useState<AdType>(prefillData?.type || 'lost');
@@ -27,7 +30,7 @@ export const CreateAdWizard: React.FC<CreateAdWizardProps> = ({
   const [photos, setPhotos] = useState<string[]>(prefillData?.photos || []);
   const [petName, setPetName] = useState(prefillData?.petName || '');
   const [contactName, setContactName] = useState(prefillData?.contactName || '');
-  const [phone, setPhone] = useState(prefillData?.phone || '+7');
+  const [phone, setPhone] = useState(() => formatPhone(prefillData?.phone || '+7'));
   const [description, setDescription] = useState(prefillData?.description || '');
   const [lat, setLat] = useState<number>(prefillData?.lat || 55.751244);
   const [lng, setLng] = useState<number>(prefillData?.lng || 37.598418);
@@ -38,6 +41,7 @@ export const CreateAdWizard: React.FC<CreateAdWizardProps> = ({
   const [locationLoading, setLocationLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [moderationResult, setModerationResult] = useState<'success' | 'pending' | 'rejected' | null>(null);
+  const [lastModerationRequestId, setLastModerationRequestId] = useState<string | undefined>();
 
   // Map Picker Ref
   const pickerMapRef = useRef<HTMLDivElement>(null);
@@ -98,13 +102,27 @@ export const CreateAdWizard: React.FC<CreateAdWizardProps> = ({
     setPhotos(prev => prev.filter((_, i) => i !== index));
   };
 
-  // Format Phone Input Mask (+7...)
+  function formatPhone(value: string) {
+    let digits = value.replace(/\D/g, '');
+    if (digits.startsWith('8')) digits = `7${digits.slice(1)}`;
+    if (!digits) return '+7';
+    if (!digits.startsWith('7')) return `+${digits.slice(0, 15)}`;
+    digits = digits.slice(0, 11);
+    const area = digits.slice(1, 4);
+    const first = digits.slice(4, 7);
+    const second = digits.slice(7, 9);
+    const third = digits.slice(9, 11);
+    let result = '+7';
+    if (area) result += ` (${area}`;
+    if (area.length === 3) result += ')';
+    if (first) result += ` ${first}`;
+    if (second) result += `-${second}`;
+    if (third) result += `-${third}`;
+    return result;
+  }
+
   const handlePhoneChange = (val: string) => {
-    let clean = val.replace(/[^\d+]/g, '');
-    if (!clean.startsWith('+')) {
-      clean = '+' + clean.replace(/\+/g, '');
-    }
-    setPhone(clean);
+    setPhone(formatPhone(val));
   };
 
   // Fetch Location Handler
@@ -130,9 +148,9 @@ export const CreateAdWizard: React.FC<CreateAdWizardProps> = ({
     }
   };
 
-  // Init Step 6 Map Picker
+  // Init Step 4 Map Picker
   useEffect(() => {
-    if (step === 6 && pickerMapRef.current && !leafletPickerMap.current) {
+    if (step === 4 && pickerMapRef.current && !leafletPickerMap.current) {
       const map = L.map(pickerMapRef.current, {
         center: [lat, lng],
         zoom: 14,
@@ -183,16 +201,14 @@ export const CreateAdWizard: React.FC<CreateAdWizardProps> = ({
       if (!category) return setError('Выберите категорию животного');
     } else if (step === 3) {
       if (photos.length < 1) return setError('Загрузите хотя бы 1 фотографию (максимум 3)');
-    } else if (step === 4) {
       if (type === 'lost' && !petName.trim()) {
         return setError('Укажите кличку животного');
       }
       if (!description.trim() || description.trim().length < 10) {
         return setError('Укажите подробное описание и приметы (не менее 10 символов)');
       }
-    } else if (step === 5) {
       if (!contactName.trim()) return setError('Укажите имя контактного лица');
-      if (!phone.trim() || phone.trim().length < 11) return setError('Укажите корректный номер телефона (например, +79161234567)');
+      if (phone.replace(/\D/g, '').length !== 11) return setError('Укажите корректный номер телефона');
     }
     setStep(prev => prev + 1);
   };
@@ -208,6 +224,7 @@ export const CreateAdWizard: React.FC<CreateAdWizardProps> = ({
     setIsSubmitting(true);
     try {
       const res = await onSubmit({
+        ...(currentAdId ? { id: currentAdId } : {}),
         type,
         category,
         photos,
@@ -219,6 +236,9 @@ export const CreateAdWizard: React.FC<CreateAdWizardProps> = ({
         lng,
         captchaToken
       });
+
+      setCurrentAdId(res.ad?.id || currentAdId);
+      setLastModerationRequestId(res.requestId);
 
       if (res.status === 'active') {
         setModerationResult('success');
@@ -259,12 +279,12 @@ export const CreateAdWizard: React.FC<CreateAdWizardProps> = ({
         <div className="p-4 border-b border-slate-200/50 dark:border-slate-800/50 flex items-center justify-between">
           <div>
             <h2 className="text-base font-bold">
-              Новое объявление ({step} из 7)
+              Новое объявление ({step} из 5)
             </h2>
             <div className="w-48 bg-slate-200/60 dark:bg-slate-800/60 h-1.5 rounded-full overflow-hidden mt-1">
               <div
                 className="bg-[#008E3A] h-full transition-all duration-300"
-                style={{ width: `${(step / 7) * 100}%` }}
+                style={{ width: `${(step / 5) * 100}%` }}
               />
             </div>
           </div>
@@ -357,12 +377,12 @@ export const CreateAdWizard: React.FC<CreateAdWizardProps> = ({
             </div>
           )}
 
-          {/* STEP 3: Photos */}
+          {/* STEP 3: Photos, pet and contact details */}
           {step === 3 && (
-            <div className="space-y-3">
+            <div className="space-y-4">
               <div className="flex justify-between items-center">
                 <h3 className="text-sm font-semibold text-slate-800 dark:text-slate-200">
-                  Шаг 3: Загрузите фотографии (от 1 до 3)
+                  Шаг 3: Данные объявления
                 </h3>
                 <span className="text-xs text-slate-500">{photos.length} / 3</span>
               </div>
@@ -400,15 +420,6 @@ export const CreateAdWizard: React.FC<CreateAdWizardProps> = ({
               <p className="text-[11px] text-slate-400">
                 Поддерживаются JPEG, PNG, WebP до 10 МБ. Основным объектом на фото должно быть животное.
               </p>
-            </div>
-          )}
-
-          {/* STEP 4: Info */}
-          {step === 4 && (
-            <div className="space-y-3">
-              <h3 className="text-sm font-semibold text-slate-800 dark:text-slate-200">
-                Шаг 4: Информация о питомце
-              </h3>
 
               <div className="space-y-1">
                 <label className="text-xs font-medium text-slate-700 dark:text-slate-300">
@@ -435,15 +446,6 @@ export const CreateAdWizard: React.FC<CreateAdWizardProps> = ({
                   className="w-full border border-slate-200 dark:border-slate-800 rounded-xl p-2.5 text-xs bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-[#008E3A]"
                 />
               </div>
-            </div>
-          )}
-
-          {/* STEP 5: Contact */}
-          {step === 5 && (
-            <div className="space-y-3">
-              <h3 className="text-sm font-semibold text-slate-800 dark:text-slate-200">
-                Шаг 5: Контактная информация
-              </h3>
 
               <div className="space-y-1">
                 <label className="text-xs font-medium text-slate-700 dark:text-slate-300">
@@ -466,9 +468,11 @@ export const CreateAdWizard: React.FC<CreateAdWizardProps> = ({
                   <Phone className="w-4 h-4 absolute left-3 top-3 text-slate-400" />
                   <input
                     type="tel"
+                    inputMode="tel"
+                    maxLength={18}
                     value={phone}
                     onChange={e => handlePhoneChange(e.target.value)}
-                    placeholder="+79161234567"
+                    placeholder="+7 (916) 123-45-67"
                     className="w-full border border-slate-200 dark:border-slate-800 rounded-xl p-2.5 pl-9 text-xs font-mono bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-[#008E3A]"
                   />
                 </div>
@@ -479,11 +483,11 @@ export const CreateAdWizard: React.FC<CreateAdWizardProps> = ({
             </div>
           )}
 
-          {/* STEP 6: Location */}
-          {step === 6 && (
+          {/* STEP 4: Location */}
+          {step === 4 && (
             <div className="space-y-3">
               <h3 className="text-sm font-semibold text-slate-800 dark:text-slate-200">
-                Шаг 6: Укажите точное место на карте
+                Шаг 4: Укажите точное место на карте
               </h3>
               <p className="text-xs text-slate-500">
                 Кликните по карте или перетащите маркер в точку пропажи / обнаружения.
@@ -509,11 +513,11 @@ export const CreateAdWizard: React.FC<CreateAdWizardProps> = ({
             </div>
           )}
 
-          {/* STEP 7: Moderation & Publish */}
-          {step === 7 && (
+          {/* STEP 5: Moderation & Publish */}
+          {step === 5 && (
             <div className="space-y-4">
               <h3 className="text-sm font-semibold text-slate-800 dark:text-slate-200">
-                Шаг 7: Проверка безопасности и публикация
+                Шаг 5: Проверка безопасности и публикация
               </h3>
 
               {!moderationResult ? (
@@ -539,7 +543,7 @@ export const CreateAdWizard: React.FC<CreateAdWizardProps> = ({
                     {isSubmitting ? (
                       <>
                         <Sparkles className="w-4 h-4 animate-spin text-amber-300" />
-                        <span>Проверка нейросетью Gemini AI...</span>
+                        <span>Объявление на модерации с ИИ</span>
                       </>
                     ) : (
                       <>
@@ -578,12 +582,20 @@ export const CreateAdWizard: React.FC<CreateAdWizardProps> = ({
                   <AlertCircle className="w-10 h-10 text-rose-500 mx-auto" />
                   <h4 className="font-bold text-sm">Объявление отклонено модератором</h4>
                   <p className="text-xs">Содержание или фотография не соответствуют правилам публикации домашних животных.</p>
-                  <button
-                    onClick={onClose}
-                    className="mt-2 bg-slate-800 text-white font-medium px-4 py-2 rounded-xl text-xs cursor-pointer"
-                  >
-                    Понятно
-                  </button>
+                  <div className="flex flex-col sm:flex-row gap-2 pt-2">
+                    <button
+                      onClick={() => { setModerationResult(null); setCaptchaToken(''); setStep(3); }}
+                      className="flex-1 bg-rose-600 text-white font-medium px-4 py-2.5 rounded-xl text-xs cursor-pointer"
+                    >
+                      Изменить объявление
+                    </button>
+                    <button
+                      onClick={() => onReportIssue({ id: currentAdId, status: 'rejected' }, lastModerationRequestId)}
+                      className="flex-1 bg-white/70 dark:bg-slate-900/60 text-rose-700 dark:text-rose-200 font-medium px-4 py-2.5 rounded-xl text-xs cursor-pointer border border-rose-200 dark:border-rose-800"
+                    >
+                      Сообщить о проблеме
+                    </button>
+                  </div>
                 </div>
               )}
             </div>
@@ -606,7 +618,7 @@ export const CreateAdWizard: React.FC<CreateAdWizardProps> = ({
               <div />
             )}
 
-            {step < 7 && (
+            {step < 5 && (
               <button
                 type="button"
                 onClick={validateAndNext}
