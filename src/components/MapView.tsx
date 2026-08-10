@@ -3,7 +3,7 @@ import L from 'leaflet';
 import { Locate, Bell, Check, Trash2, MapPin, ChevronRight, Settings, X } from 'lucide-react';
 import { PublicAdItem, GeoSubscription } from '../types';
 import { cartoTileUrl, useSystemDarkMode } from '../theme';
-import { getCurrentLocation, getCurrentLocationViaBridge, isGeolocationPermissionDenied, isStandalonePwa } from '../geolocation';
+import { getCurrentLocation, isGeolocationPermissionDenied } from '../geolocation';
 
 interface MapViewProps {
   ads: PublicAdItem[];
@@ -27,7 +27,6 @@ export const MapView: React.FC<MapViewProps> = ({
   onOpenAuth
 }) => {
   const isDarkMode = useSystemDarkMode();
-  const isStandalone = isStandalonePwa();
   const initialDarkMode = useRef(isDarkMode);
   const mapRef = useRef<HTMLDivElement>(null);
   const leafletMap = useRef<L.Map | null>(null);
@@ -200,10 +199,11 @@ export const MapView: React.FC<MapViewProps> = ({
   }, [isSubMode, subLat, subLng, subRadius, geoSubscription]);
 
   // Geolocation trigger
-  const handleGetLocation = async (useBridge = false) => {
+  const handleGetLocation = async () => {
     setLocationHelpOpen(false);
     setLocationLoading(true);
-    const applyLocation = (latitude: number, longitude: number) => {
+    const applyLocation = (pos: GeolocationPosition) => {
+      const { latitude, longitude } = pos.coords;
       if (!leafletMap.current) return;
       leafletMap.current.flyTo([latitude, longitude], 13);
       if (userGpsMarker.current) leafletMap.current.removeLayer(userGpsMarker.current);
@@ -220,13 +220,7 @@ export const MapView: React.FC<MapViewProps> = ({
     };
 
     try {
-      if (useBridge) {
-        const { latitude, longitude } = await getCurrentLocationViaBridge();
-        applyLocation(latitude, longitude);
-      } else {
-        const { coords: { latitude, longitude } } = await getCurrentLocation();
-        applyLocation(latitude, longitude);
-      }
+      applyLocation(await getCurrentLocation());
     } catch (error) {
       if (isGeolocationPermissionDenied(error)) {
         setLocationHelpOpen(true);
@@ -393,7 +387,7 @@ export const MapView: React.FC<MapViewProps> = ({
         <div className="absolute top-3.5 right-3.5 z-[1000] flex flex-col space-y-2">
           <button
             type="button"
-            onClick={() => void handleGetLocation()}
+            onClick={handleGetLocation}
             disabled={locationLoading}
             title={locationLoading ? 'Определяем местоположение' : 'Моё местоположение'}
             aria-label={locationLoading ? 'Определяем местоположение' : 'Моё местоположение'}
@@ -513,21 +507,18 @@ export const MapView: React.FC<MapViewProps> = ({
             <div className="space-y-1.5 pr-8">
               <h3 className="text-base font-bold">Разрешите доступ к геопозиции</h3>
               <p className="text-xs leading-relaxed text-slate-500 dark:text-slate-400">
-                Браузер не показал окно доступа и вернул отказ. Проверьте системное разрешение, затем повторите запрос с этой кнопки.
+                Доступ к геопозиции отклонён браузером или системой. Проверьте разрешения и повторите запрос.
               </p>
             </div>
             <div className="space-y-2 text-xs text-slate-700 dark:text-slate-300">
-              {isStandalone ? (
-                <p><strong>LostHvost на экране «Домой»:</strong> Настройки → Конфиденциальность и безопасность → Службы геолокации → LostHvost → При использовании.</p>
-              ) : (
-                <p><strong>Safari:</strong> Настройки → Конфиденциальность и безопасность → Службы геолокации → Safari Websites → При использовании. Для сайта оставьте Геопозиция → Спросить.</p>
-              )}
-              <p><strong>Android:</strong> Настройки → Приложения → LostHvost или браузер → Разрешения → Местоположение.</p>
+              <p><strong>1.</strong> В настройках устройства разрешите доступ к местоположению для браузера.</p>
+              <p><strong>2.</strong> В настройках сайта разрешите геопозицию для losthvost.ru.</p>
+              <p><strong>3.</strong> Вернитесь на сайт и повторите запрос.</p>
             </div>
             <div className="space-y-2">
               <button
                 type="button"
-                onClick={() => void handleGetLocation(true)}
+                onClick={handleGetLocation}
                 disabled={locationLoading}
                 className="w-full h-11 rounded-2xl bg-[#008E3A] text-white text-sm font-semibold disabled:opacity-60"
               >

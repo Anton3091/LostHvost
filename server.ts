@@ -82,11 +82,7 @@ async function alertTelegram(key: string, text: string) {
 
 app.set('trust proxy', 1);
 app.disable('x-powered-by');
-app.use(helmet({
-  contentSecurityPolicy: false,
-  crossOriginResourcePolicy: { policy: 'cross-origin' },
-  crossOriginOpenerPolicy: { policy: 'same-origin-allow-popups' }
-}));
+app.use(helmet({ contentSecurityPolicy: false, crossOriginResourcePolicy: { policy: 'cross-origin' } }));
 app.use(express.json({ limit: '35mb' }));
 app.use(cookieParser());
 app.use((req, res, next) => { req.requestId = crypto.randomUUID(); res.setHeader('X-Request-Id', req.requestId); next(); });
@@ -114,7 +110,7 @@ const blocked = (user: AppUser) => {
 
 app.post('/api/client-events/geolocation', geolocationDiagnosticsLimit, (req, res) => {
   const phases = new Set(['start', 'permission', 'success', 'error', 'stalled']);
-  const stages = new Set(['initial', 'precise', 'bridge']);
+  const stages = new Set(['initial', 'precise']);
   const permissionStates = new Set(['granted', 'denied', 'prompt', 'unsupported', 'query-error', 'unknown']);
   const platforms = new Set(['iPhone', 'iPad', 'Mac', 'other']);
   const visibilityStates = new Set(['visible', 'hidden', 'prerender', 'unloaded']);
@@ -162,88 +158,6 @@ app.post('/api/client-events/geolocation', geolocationDiagnosticsLimit, (req, re
     durationMs
   );
   res.status(204).end();
-});
-
-app.get('/geo-bridge', (_req, res) => {
-  res.set({
-    'Cache-Control': 'no-store',
-    'Content-Type': 'text/html; charset=utf-8',
-    'Cross-Origin-Opener-Policy': 'unsafe-none',
-    'Content-Security-Policy': "default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; base-uri 'none'; frame-ancestors 'none'"
-  });
-  res.send(`<!doctype html>
-<html lang="ru">
-  <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-    <title>Геолокация LostHvost</title>
-    <style>
-      :root { color-scheme: light dark; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
-      body { min-height: 100vh; margin: 0; display: grid; place-items: center; padding: 20px; box-sizing: border-box; background: #f1f5f9; color: #0f172a; }
-      main { width: min(100%, 360px); box-sizing: border-box; border-radius: 24px; padding: 24px; background: white; box-shadow: 0 20px 50px rgba(15, 23, 42, .16); }
-      h1 { margin: 0 0 10px; font-size: 20px; }
-      p { margin: 0 0 18px; color: #64748b; font-size: 14px; line-height: 1.45; }
-      button { width: 100%; min-height: 46px; border: 0; border-radius: 16px; background: #008e3a; color: white; font: inherit; font-weight: 700; }
-      button:disabled { opacity: .65; }
-      @media (prefers-color-scheme: dark) { body { background: #020617; color: #f8fafc; } main { background: #0f172a; } p { color: #94a3b8; } }
-    </style>
-  </head>
-  <body>
-    <main>
-      <h1>Геолокация LostHvost</h1>
-      <p id="status">Запрашиваем разрешение Safari…</p>
-      <button id="request" type="button">Разрешить геолокацию</button>
-    </main>
-    <script>
-      const targetOrigin = 'https://losthvost.ru';
-      const requestId = new URLSearchParams(location.search).get('requestId') || '';
-      const statusNode = document.getElementById('status');
-      const requestButton = document.getElementById('request');
-      let requestInFlight = false;
-
-      function sendResult(result) {
-        if (!window.opener || !requestId) return false;
-        window.opener.postMessage({ type: 'losthvost:geo-bridge', requestId, ...result }, targetOrigin);
-        return true;
-      }
-
-      function requestLocation() {
-        if (requestInFlight) return;
-        if (!navigator.geolocation) {
-          statusNode.textContent = 'Safari не поддерживает геолокацию.';
-          sendResult({ status: 'error', errorMessage: 'GEOLOCATION_UNSUPPORTED' });
-          return;
-        }
-
-        requestInFlight = true;
-        requestButton.disabled = true;
-        statusNode.textContent = 'Запрашиваем разрешение Safari…';
-        navigator.geolocation.getCurrentPosition(
-          position => {
-            const delivered = sendResult({
-              status: 'success',
-              latitude: position.coords.latitude,
-              longitude: position.coords.longitude,
-              accuracy: position.coords.accuracy
-            });
-            statusNode.textContent = delivered ? 'Местоположение передано в LostHvost.' : 'Вернитесь в LostHvost и повторите запрос.';
-            if (delivered) setTimeout(() => window.close(), 250);
-          },
-          error => {
-            requestInFlight = false;
-            requestButton.disabled = false;
-            statusNode.textContent = 'Safari снова отклонил запрос. Проверьте системное разрешение Safari Websites.';
-            sendResult({ status: 'error', errorCode: error.code, errorMessage: error.message });
-          },
-          { enableHighAccuracy: false, timeout: 20000, maximumAge: 300000 }
-        );
-      }
-
-      requestButton.addEventListener('click', requestLocation);
-      window.addEventListener('load', () => setTimeout(requestLocation, 0), { once: true });
-    </script>
-  </body>
-</html>`);
 });
 
 async function verifyCaptcha(token: unknown, ip: string) {
