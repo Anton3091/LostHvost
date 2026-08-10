@@ -122,7 +122,7 @@ export const CreateAdWizard: React.FC<CreateAdWizardProps> = ({
     } catch (locationError) {
       setError(
         isGeolocationPermissionDenied(locationError)
-          ? 'Нет доступа к геолокации. Разрешите местоположение для LostHvost в настройках PWA или браузера.'
+          ? 'Нет доступа к геолокации. Разрешите местоположение для LostHvost или Safari в настройках устройства, затем повторите попытку.'
           : 'Не удалось определить местоположение. Проверьте GPS и подключение к интернету или выберите точку вручную.'
       );
     } finally {

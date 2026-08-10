@@ -3,7 +3,7 @@ import L from 'leaflet';
 import { Locate, Bell, Check, Trash2, MapPin, ChevronRight, Settings, X } from 'lucide-react';
 import { PublicAdItem, GeoSubscription } from '../types';
 import { cartoTileUrl, useSystemDarkMode } from '../theme';
-import { getCurrentLocation, isGeolocationPermissionDenied } from '../geolocation';
+import { getCurrentLocation, isGeolocationPermissionDenied, isStandalonePwa } from '../geolocation';
 
 interface MapViewProps {
   ads: PublicAdItem[];
@@ -27,6 +27,7 @@ export const MapView: React.FC<MapViewProps> = ({
   onOpenAuth
 }) => {
   const isDarkMode = useSystemDarkMode();
+  const isStandalone = isStandalonePwa();
   const initialDarkMode = useRef(isDarkMode);
   const mapRef = useRef<HTMLDivElement>(null);
   const leafletMap = useRef<L.Map | null>(null);
@@ -200,6 +201,7 @@ export const MapView: React.FC<MapViewProps> = ({
 
   // Geolocation trigger
   const handleGetLocation = async () => {
+    setLocationHelpOpen(false);
     setLocationLoading(true);
     const applyLocation = (pos: GeolocationPosition) => {
       const { latitude, longitude } = pos.coords;
@@ -506,20 +508,34 @@ export const MapView: React.FC<MapViewProps> = ({
             <div className="space-y-1.5 pr-8">
               <h3 className="text-base font-bold">Разрешите доступ к геопозиции</h3>
               <p className="text-xs leading-relaxed text-slate-500 dark:text-slate-400">
-                Системные настройки нельзя открыть с веб-страницы автоматически. Включите геолокацию и разрешите её для LostHvost или браузера.
+                Браузер не показал окно доступа и вернул отказ. Проверьте системное разрешение, затем повторите запрос с этой кнопки.
               </p>
             </div>
             <div className="space-y-2 text-xs text-slate-700 dark:text-slate-300">
-              <p><strong>iPhone:</strong> Настройки → Конфиденциальность и безопасность → Службы геолокации → Safari Websites или LostHvost → При использовании.</p>
+              {isStandalone ? (
+                <p><strong>LostHvost на экране «Домой»:</strong> Настройки → Конфиденциальность и безопасность → Службы геолокации → LostHvost → При использовании.</p>
+              ) : (
+                <p><strong>Safari:</strong> Настройки → Конфиденциальность и безопасность → Службы геолокации → Safari Websites → При использовании. Для сайта оставьте Геопозиция → Спросить.</p>
+              )}
               <p><strong>Android:</strong> Настройки → Приложения → LostHvost или браузер → Разрешения → Местоположение.</p>
             </div>
-            <button
-              type="button"
-              onClick={() => setLocationHelpOpen(false)}
-              className="w-full h-11 rounded-2xl bg-[#008E3A] text-white text-sm font-semibold"
-            >
-              Понятно
-            </button>
+            <div className="space-y-2">
+              <button
+                type="button"
+                onClick={handleGetLocation}
+                disabled={locationLoading}
+                className="w-full h-11 rounded-2xl bg-[#008E3A] text-white text-sm font-semibold disabled:opacity-60"
+              >
+                Запросить ещё раз
+              </button>
+              <button
+                type="button"
+                onClick={() => setLocationHelpOpen(false)}
+                className="w-full h-10 rounded-2xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 text-sm font-semibold"
+              >
+                Закрыть
+              </button>
+            </div>
           </div>
         </div>
       )}
