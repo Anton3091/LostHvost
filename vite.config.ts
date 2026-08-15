@@ -6,6 +6,9 @@ import {defineConfig} from 'vite';
 export default defineConfig(() => {
   return {
     plugins: [react(), tailwindcss()],
+    build: {
+      manifest: 'asset-manifest.json',
+    },
     resolve: {
       alias: {
         '@': path.resolve(__dirname, '.'),

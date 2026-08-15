@@ -82,11 +82,6 @@ export const MapView: React.FC<MapViewProps> = ({
     markersLayer.current = L.layerGroup().addTo(map);
     leafletMap.current = map;
 
-    // Trigger size invalidation to fix initial tile rendering inside flex card
-    setTimeout(() => {
-      map.invalidateSize();
-    }, 200);
-
     // Viewport change listener
     const notifyViewport = () => {
       if (!leafletMap.current || !onViewportChange) return;
@@ -101,9 +96,18 @@ export const MapView: React.FC<MapViewProps> = ({
 
     map.on('moveend', notifyViewport);
     map.on('zoomend', notifyViewport);
-    notifyViewport();
+
+    // Wait for the card to receive its final size before requesting ads for the
+    // viewport. The timer is cleared on cleanup because React StrictMode can
+    // mount and immediately dispose the first Leaflet instance in development.
+    const initialViewportTimer = window.setTimeout(() => {
+      if (leafletMap.current !== map) return;
+      map.invalidateSize({ pan: false });
+      notifyViewport();
+    }, 200);
 
     return () => {
+      window.clearTimeout(initialViewportTimer);
       map.remove();
       leafletMap.current = null;
     };
