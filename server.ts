@@ -342,7 +342,7 @@ app.get('/sitemap.xml', (_req, res) => {
   const urls = rows.map(ad => `<url><loc>${xmlEscape(`${appUrl}${adSeoPath({ id: ad.id, type: ad.type, category: ad.category, petName: ad.pet_name, city: ad.city })}`)}</loc><lastmod>${new Date(ad.created_at).toISOString()}</lastmod></url>`).join('');
   res.type('application/xml').setHeader('Cache-Control', 'no-cache').send(`<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"><url><loc>${xmlEscape(`${appUrl}/main`)}</loc><changefreq>daily</changefreq><priority>1.0</priority></url>${urls}</urlset>`);
 });
-app.get('/main', (_req, res) => { res.type('html').setHeader('Cache-Control', 'public, max-age=300, s-maxage=300').send(renderMainSeoPage()); });
+app.get('/main', (_req, res, next) => { if (!production) return next(); res.setHeader('Cache-Control', 'no-cache').sendFile(path.join(process.cwd(), 'dist', 'index.html')); });
 app.get('/obyavleniya/:id/:slug?', (req, res) => {
   const ad: any = db.prepare('SELECT * FROM ads WHERE id=?').get(req.params.id);
   if (!ad) return res.status(404).setHeader('X-Robots-Tag', 'noindex').send('Объявление не найдено');
