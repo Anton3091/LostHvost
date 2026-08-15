@@ -306,18 +306,39 @@ function removePhotos(photos: string[]) {
   }
 }
 
+type ModerationCategory = 'cat' | 'dog' | 'other';
+
+const moderationCategoryLabels: Record<ModerationCategory, string> = {
+  cat: 'Кошки',
+  dog: 'Собаки',
+  other: 'Другое'
+};
+
+const moderationSystemPrompts: Record<ModerationCategory, string> = {
+  cat: 'Ты модерируешь объявление категории «Кошки». Целевая категория — только кошки и котята. Сверь категорию одновременно с текстом и каждой фотографией. На каждой фотографии главным объектом должна быть кошка или котёнок. Порода и внешний вид не важны. Если текст или хотя бы одна фотография указывают на собаку, другое животное, посторонний объект или категорию нельзя уверенно подтвердить, отклони объявление.',
+  dog: 'Ты модерируешь объявление категории «Собаки». Целевая категория — только собаки и щенки. Сверь категорию одновременно с текстом и каждой фотографией. На каждой фотографии главным объектом должна быть собака или щенок. Порода и внешний вид не важны. Если текст или хотя бы одна фотография указывают на кошку, другое животное, посторонний объект или категорию нельзя уверенно подтвердить, отклони объявление.',
+  other: 'Ты модерируешь объявление категории «Другое». Целевая категория — домашние животные, которые не относятся к кошкам и собакам: например птицы, кролики, грызуны или рептилии. Сверь категорию одновременно с текстом и каждой фотографией. На каждой фотографии главным объектом должно быть одно и то же подходящее домашнее животное. Если текст или хотя бы одна фотография указывают на кошку, собаку, посторонний объект или категорию нельзя уверенно подтвердить, отклони объявление.'
+};
+
 async function moderate(ad: any, complaintReason?: string) {
   if (!process.env.POLZA_API_KEY) throw new Error('POLZA_API_KEY is not configured');
+  const category = ad.category as ModerationCategory;
+  const categoryLabel = moderationCategoryLabels[category];
+  const categorySystemPrompt = moderationSystemPrompts[category];
+  if (!categoryLabel || !categorySystemPrompt) throw new Error(`Unsupported moderation category: ${String(ad.category)}`);
   const complaint = Boolean(complaintReason);
+  const systemPrompt = complaint
+    ? `${categorySystemPrompt} Это повторная строгая проверка после жалобы. Не меняй целевую категорию и не засчитывай объявление как соответствующее по одному упоминанию в тексте. При любом несоответствии категории установи shouldRemove=true. Также сними объявление при спаме, мошенничестве, рекламе, политике, сексуальном, запрещённом или постороннем содержании.`
+    : `${categorySystemPrompt} Решай консервативно: при сомнении в категории установи approved=false. Также отклоняй рекламу, спам, политический, сексуальный, запрещённый и посторонний контент.`;
   const prompt = complaint
-    ? `Проведи строгую повторную модерацию объявления о домашнем животном после жалобы: ${complaintReason}. Описание: ${ad.description}. Верни JSON вида {"shouldRemove":boolean}. Сними объявление при спаме, мошенничестве, рекламе, политике, сексуальном, запрещённом или постороннем содержании.`
-    : `Проверь объявление о пропавшем или найденном домашнем животном. Тип: ${ad.type}; категория: ${ad.category}; кличка: ${ad.pet_name || 'не указана'}; описание: ${ad.description}. Проверь текст и все фотографии. Отклони рекламу, спам, политику, сексуальный и запрещённый контент, посторонний контент и фото, где животное не является главным объектом. Верни JSON вида {"approved":boolean}.`;
+    ? `Проведи строгую повторную модерацию объявления категории «${categoryLabel}» о домашнем животном после жалобы: ${complaintReason}. Сверь заявленную категорию с текстом и каждой фотографией. При несоответствии категории верни shouldRemove=true. Описание: ${ad.description}. Верни только JSON вида {"shouldRemove":boolean}.`
+    : `Проверь объявление категории «${categoryLabel}» о пропавшем или найденном домашнем животном. Тип: ${ad.type}; кличка: ${ad.pet_name || 'не указана'}; описание: ${ad.description}. Сверь заявленную категорию с текстом и каждой фотографией. Верни только JSON вида {"approved":boolean}.`;
   const content: any[] = [{ type: 'text', text: prompt }];
   for (const url of JSON.parse(ad.photos)) content.push({ type: 'image_url', image_url: { url: `data:image/webp;base64,${fs.readFileSync(path.join(uploadsDir, path.basename(url))).toString('base64')}`, detail: 'low' } });
   const response = await fetch(`${process.env.POLZA_BASE_URL || 'https://polza.ai/api/v1'}/chat/completions`, {
     method: 'POST',
     headers: { authorization: `Bearer ${process.env.POLZA_API_KEY}`, 'content-type': 'application/json' },
-    body: JSON.stringify({ model: process.env.POLZA_MODEL || 'openai/gpt-5.6-luna-pro', messages: [{ role: 'user', content }], response_format: { type: 'json_object' }, temperature: 0, max_tokens: 200 })
+    body: JSON.stringify({ model: process.env.POLZA_MODEL || 'openai/gpt-5.6-luna-pro', messages: [{ role: 'system', content: systemPrompt }, { role: 'user', content }], response_format: { type: 'json_object' }, temperature: 0, max_tokens: 200 })
   });
   const payload: any = await response.json();
   if (!response.ok) throw new Error(`Polza API ${response.status}: ${payload?.error?.message || 'request failed'}`);

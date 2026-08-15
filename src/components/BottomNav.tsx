@@ -21,7 +21,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({
   return (
     <>
       {/* Top Apple Liquid Glass Header */}
-      <header className="h-16 liquid-glass px-5 flex items-center justify-between">
+      <header className="h-16 bg-slate-50 shadow-none px-5 flex items-center justify-between">
         <div
           onClick={() => onNavigate('map')}
           className="flex items-center space-x-3 cursor-pointer select-none active:scale-95 transition"
