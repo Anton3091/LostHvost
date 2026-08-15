@@ -2,9 +2,8 @@ import React, { useEffect, useRef, useState } from 'react';
 import L from 'leaflet';
 import { Locate, Bell, Check, Trash2, MapPin, ChevronRight, Settings, X, Loader2 } from 'lucide-react';
 import { PublicAdItem, GeoSubscription } from '../types';
-import { cartoTileUrl, useSystemDarkMode } from '../theme';
+import { cartoTileUrl } from '../theme';
 import { getCurrentLocation, isGeolocationPermissionDenied } from '../geolocation';
-import { adSeoPath } from '../../seo';
 
 interface MapViewProps {
   ads: PublicAdItem[];
@@ -32,8 +31,6 @@ export const MapView: React.FC<MapViewProps> = ({
   isLoggedIn,
   onOpenAuth,
 }) => {
-  const isDarkMode = useSystemDarkMode();
-  const initialDarkMode = useRef(isDarkMode);
   const mapRef = useRef<HTMLDivElement>(null);
   const leafletMap = useRef<L.Map | null>(null);
   const baseTileLayer = useRef<L.TileLayer | null>(null);
@@ -75,7 +72,7 @@ export const MapView: React.FC<MapViewProps> = ({
 
     map.attributionControl.setPrefix(false);
 
-    baseTileLayer.current = L.tileLayer(cartoTileUrl(initialDarkMode.current), {
+    baseTileLayer.current = L.tileLayer(cartoTileUrl, {
       maxZoom: 19,
       attribution: '&copy; OpenStreetMap contributors &copy; CARTO'
     }).addTo(map);
@@ -111,10 +108,6 @@ export const MapView: React.FC<MapViewProps> = ({
       leafletMap.current = null;
     };
   }, []);
-
-  useEffect(() => {
-    baseTileLayer.current?.setUrl(cartoTileUrl(isDarkMode));
-  }, [isDarkMode]);
 
   // Update Ad Markers on Map
   useEffect(() => {
@@ -165,8 +158,8 @@ export const MapView: React.FC<MapViewProps> = ({
       // Draw Radius Circle
       subCircleLayer.current = L.circle([activeLat, activeLng], {
         radius: activeRadius,
-        color: '#008E3A',
-        fillColor: '#008E3A',
+        color: '#0C8C50',
+        fillColor: '#0C8C50',
         fillOpacity: 0.15,
         weight: 2,
         dashArray: '6, 6'
@@ -176,7 +169,7 @@ export const MapView: React.FC<MapViewProps> = ({
       const centerIcon = L.divIcon({
         className: 'sub-center-pin',
         html: `
-          <div style="background: #008E3A; width: 28px; height: 28px; border-radius: 50%; border: 3px solid white; display: flex; align-items: center; justify-content: center; color: white; box-shadow: 0 4px 12px rgba(0,142,58,0.4);">
+          <div style="background: #0C8C50; width: 28px; height: 28px; border-radius: 50%; border: 3px solid white; display: flex; align-items: center; justify-content: center; color: white; box-shadow: 0 4px 12px rgba(12,140,80,0.4);">
             📍
           </div>
         `,
@@ -279,47 +272,47 @@ export const MapView: React.FC<MapViewProps> = ({
   };
 
   return (
-    <div className="w-full max-w-4xl mx-auto px-4 py-4 space-y-5 text-slate-900 dark:text-slate-100">
+    <div className="w-full max-w-4xl mx-auto px-4 py-4 space-y-5 text-slate-900">
       
       {/* SECTION 1: TOP NOTIFICATION SUBSCRIPTION BLOCK */}
-      <section className={`liquid-glass border border-white/80 dark:border-white/10 shadow-xl ${isSubMode ? 'p-5 rounded-3xl space-y-3.5' : 'p-3.5 rounded-2xl'}`}>
+      <section className={`liquid-glass border border-white/80 shadow-xl ${isSubMode ? 'p-5 rounded-3xl space-y-3.5' : 'p-3.5 rounded-2xl'}`}>
         {subscriptionSaved ? (
           <div className="space-y-3">
             <div className="flex items-center space-x-2.5">
-              <div className="w-9 h-9 rounded-2xl bg-[#008E3A]/15 text-[#008E3A] flex items-center justify-center font-semibold">
+              <div className="w-9 h-9 rounded-2xl bg-[#087747]/15 text-[#0C8C50] flex items-center justify-center font-semibold">
                 <Check className="w-5 h-5" />
               </div>
               <div>
-                <h2 className="text-sm font-bold text-slate-900 dark:text-slate-100 leading-tight">Гео-подписка сохранена</h2>
-                <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">Push-уведомления включены в настройках</p>
+                <h2 className="text-sm font-bold text-slate-900 leading-tight">Гео-подписка сохранена</h2>
+                <p className="text-[11px] text-slate-500 font-medium">Push-уведомления включены в настройках</p>
               </div>
             </div>
-            <div className="rounded-2xl border border-blue-200/80 bg-blue-50/80 dark:border-blue-900/60 dark:bg-blue-950/30 p-3 space-y-1.5 text-[11px] leading-relaxed text-blue-900 dark:text-blue-100">
+            <div className="rounded-2xl border border-blue-200/80 bg-blue-50/80 p-3 space-y-1.5 text-[11px] leading-relaxed text-blue-900">
               <p className="font-bold">Пуши работают только в установленном PWA</p>
               <p>На iPhone или iPad откройте LostHvost в Safari, нажмите «Поделиться» → «На экран Домой», затем запускайте сайт с иконки и разрешите уведомления.</p>
             </div>
             <button
               type="button"
               onClick={() => setSubscriptionSaved(false)}
-              className="w-full bg-[#008E3A] hover:bg-[#007A32] text-white font-semibold py-2.5 rounded-2xl text-xs transition cursor-pointer"
+              className="w-full bg-[#087747] hover:bg-[#06683D] text-white font-semibold py-2.5 rounded-2xl text-xs transition cursor-pointer"
             >
               Вернуться к карте
             </button>
           </div>
         ) : !isSubMode ? (
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-xl bg-[#008E3A]/15 text-[#008E3A] flex items-center justify-center flex-shrink-0">
+            <div className="w-8 h-8 rounded-xl bg-[#087747]/15 text-[#0C8C50] flex items-center justify-center flex-shrink-0">
               <Bell className="w-4 h-4" />
             </div>
             <div className="min-w-0 flex-1">
-              <h2 className="text-sm font-bold text-slate-900 dark:text-slate-100 leading-tight">Гео-подписка</h2>
-              <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-snug whitespace-normal break-words">
+              <h2 className="text-sm font-bold text-slate-900 leading-tight">Гео-подписка</h2>
+              <p className="text-[11px] text-slate-500 leading-snug whitespace-normal break-words">
                 Выберите область на карте и получите уведомление как только появится новое объявление
               </p>
             </div>
             <button
               onClick={toggleSubMode}
-              className="bg-[#008E3A] hover:bg-[#007A32] text-white text-xs font-semibold px-3 py-2 rounded-xl shadow-md shadow-emerald-700/20 transition active:scale-95 cursor-pointer flex items-center gap-1.5 flex-shrink-0"
+              className="bg-[#087747] hover:bg-[#06683D] text-white text-xs font-semibold px-3 py-2 rounded-xl shadow-md shadow-emerald-700/20 transition active:scale-95 cursor-pointer flex items-center gap-1.5 flex-shrink-0"
             >
               {geoSubscription?.isActive && <Check className="w-3.5 h-3.5" />}
               <span>{geoSubscription?.isActive ? 'Изменить' : 'Настроить'}</span>
@@ -338,19 +331,19 @@ export const MapView: React.FC<MapViewProps> = ({
         ) : (
           <>
             <div className="flex items-center space-x-2.5">
-              <div className="w-9 h-9 rounded-2xl bg-[#008E3A]/15 text-[#008E3A] flex items-center justify-center font-semibold">
+              <div className="w-9 h-9 rounded-2xl bg-[#087747]/15 text-[#0C8C50] flex items-center justify-center font-semibold">
                 <Bell className="w-5 h-5" />
               </div>
               <div>
-                <h2 className="text-sm font-bold text-slate-900 dark:text-slate-100 leading-tight">Гео-подписка на уведомления</h2>
-                <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">Настройте точку и радиус зоны</p>
+                <h2 className="text-sm font-bold text-slate-900 leading-tight">Гео-подписка на уведомления</h2>
+                <p className="text-[11px] text-slate-500 font-medium">Настройте точку и радиус зоны</p>
               </div>
             </div>
-            <div className="space-y-3.5 pt-2 bg-white/40 dark:bg-slate-800/40 p-4 rounded-2xl border border-white/50 dark:border-white/5">
-            <div className="flex items-center justify-between text-xs font-semibold text-slate-700 dark:text-slate-200">
-              <div className="flex items-center space-x-1.5 text-[#008E3A]">
+            <div className="space-y-3.5 pt-2 bg-white/40 p-4 rounded-2xl border border-white/50">
+            <div className="flex items-center justify-between text-xs font-semibold text-slate-700">
+              <div className="flex items-center space-x-1.5 text-[#0C8C50]">
                 <MapPin className="w-4 h-4" />
-                <span>Радиус зоны: <strong className="text-[#008E3A]">{formatSubscriptionRadius(subRadius)}</strong></span>
+                <span>Радиус зоны: <strong className="text-[#0C8C50]">{formatSubscriptionRadius(subRadius)}</strong></span>
               </div>
               <span className="text-[11px] text-slate-400 text-right">Перетащите маркер на карте ниже</span>
             </div>
@@ -363,8 +356,8 @@ export const MapView: React.FC<MapViewProps> = ({
                   onClick={() => setSubRadius(r)}
                   className={`py-1.5 text-xs font-semibold rounded-xl border transition cursor-pointer ${
                     subRadius === r
-                      ? 'bg-[#008E3A] text-white border-[#008E3A] shadow-md shadow-emerald-700/20'
-                      : 'border-white/60 bg-white/60 dark:bg-slate-800/60 text-slate-700 dark:text-slate-300 hover:bg-white'
+                      ? 'bg-[#087747] text-white border-[#0C8C50] shadow-md shadow-emerald-700/20'
+                      : 'border-white/60 bg-white/60 text-slate-700 hover:bg-white'
                   }`}
                 >
                   {formatSubscriptionRadius(r)}
@@ -372,20 +365,20 @@ export const MapView: React.FC<MapViewProps> = ({
               ))}
             </div>
 
-            {subscriptionSaveError && <p className="text-xs font-semibold text-rose-600 dark:text-rose-400">{subscriptionSaveError}</p>}
+            {subscriptionSaveError && <p className="text-xs font-semibold text-rose-600">{subscriptionSaveError}</p>}
 
             <div className="flex space-x-2 pt-1">
               <button
                 onClick={handleSaveSub}
                 disabled={subscriptionSaving}
-                className="flex-1 bg-[#008E3A] hover:bg-[#007A32] text-white font-semibold py-2.5 rounded-2xl text-xs flex items-center justify-center space-x-1.5 shadow-md transition cursor-pointer"
+                className="flex-1 bg-[#087747] hover:bg-[#06683D] text-white font-semibold py-2.5 rounded-2xl text-xs flex items-center justify-center space-x-1.5 shadow-md transition cursor-pointer"
               >
                 {subscriptionSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
                 <span>{subscriptionSaving ? 'Сохраняем…' : `Сохранить подписку (${formatSubscriptionRadius(subRadius)})`}</span>
               </button>
               <button
                 onClick={() => setIsSubMode(false)}
-                className="bg-slate-200/60 dark:bg-slate-800/60 text-slate-600 dark:text-slate-300 px-4 py-2.5 rounded-2xl text-xs font-semibold transition cursor-pointer"
+                className="bg-slate-200/60 text-slate-600 px-4 py-2.5 rounded-2xl text-xs font-semibold transition cursor-pointer"
               >
                 Отмена
               </button>
@@ -396,17 +389,17 @@ export const MapView: React.FC<MapViewProps> = ({
       </section>
 
       {/* SECTION 2: MIDDLE MAP SECTION (INTEGRATED MAP CONTAINER) */}
-      <section className="relative w-full h-[360px] rounded-3xl overflow-hidden shadow-xl border border-white/70 dark:border-white/10 liquid-glass">
+      <section className="relative w-full h-[360px] rounded-3xl overflow-hidden shadow-xl border border-white/70 liquid-glass">
         {/* Map Canvas */}
         <div ref={mapRef} className="w-full h-full z-0" />
 
         {/* Legend Overlay Pill (Top-Left) */}
-        <div className="absolute top-3.5 left-3.5 z-[1000] liquid-glass px-3.5 py-2 rounded-full flex items-center space-x-3 text-xs font-medium text-slate-800 dark:text-slate-100 shadow-md">
+        <div className="absolute top-3.5 left-3.5 z-[1000] liquid-glass px-3.5 py-2 rounded-full flex items-center space-x-3 text-xs font-medium text-slate-800 shadow-md">
           <div className="flex items-center space-x-1.5">
             <span className="w-2.5 h-2.5 rounded-full bg-[#e53935] ring-2 ring-white shadow-sm" />
             <span className="text-[11px] font-semibold">Потерян</span>
           </div>
-          <span className="text-slate-300 dark:text-slate-600">|</span>
+          <span className="text-slate-300">|</span>
           <div className="flex items-center space-x-1.5">
             <span className="w-2.5 h-2.5 rounded-full bg-[#2563eb] ring-2 ring-white shadow-sm" />
             <span className="text-[11px] font-semibold">Найден</span>
@@ -421,9 +414,9 @@ export const MapView: React.FC<MapViewProps> = ({
             disabled={locationLoading}
             title={locationLoading ? 'Определяем местоположение' : 'Моё местоположение'}
             aria-label={locationLoading ? 'Определяем местоположение' : 'Моё местоположение'}
-            className="w-10 h-10 liquid-glass text-slate-800 dark:text-slate-100 rounded-full flex items-center justify-center hover:scale-105 active:scale-95 transition shadow-md cursor-pointer disabled:opacity-60 disabled:cursor-wait"
+            className="w-10 h-10 liquid-glass text-slate-800 rounded-full flex items-center justify-center hover:scale-105 active:scale-95 transition shadow-md cursor-pointer disabled:opacity-60 disabled:cursor-wait"
           >
-            <Locate className={`w-4 h-4 text-[#008E3A] ${locationLoading ? 'animate-pulse' : ''}`} />
+            <Locate className={`w-4 h-4 text-[#0C8C50] ${locationLoading ? 'animate-pulse' : ''}`} />
           </button>
         </div>
       </section>
@@ -434,10 +427,10 @@ export const MapView: React.FC<MapViewProps> = ({
         <div className="flex flex-col space-y-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2">
-              <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">
+              <h3 className="text-base font-bold text-slate-900">
                 Питомцы на карте
               </h3>
-              <span className="px-2.5 py-0.5 rounded-full bg-[#008E3A]/15 text-[#008E3A] text-xs font-bold">
+              <span className="px-2.5 py-0.5 rounded-full bg-[#087747]/15 text-[#0C8C50] text-xs font-bold">
                 {ads.length}
               </span>
             </div>
@@ -451,7 +444,7 @@ export const MapView: React.FC<MapViewProps> = ({
         {/* Pet Cards List */}
         {ads.length === 0 ? (
           <div className="liquid-glass p-8 rounded-3xl text-center space-y-2">
-            <p className="text-sm font-semibold text-slate-600 dark:text-slate-300">
+            <p className="text-sm font-semibold text-slate-600">
               Питомцы не найдены
             </p>
             <p className="text-xs text-slate-400">
@@ -463,14 +456,13 @@ export const MapView: React.FC<MapViewProps> = ({
             {ads.map(ad => {
               const isLost = ad.type === 'lost';
               return (
-                <a
+                <div
                   key={ad.id}
-                  href={adSeoPath(ad)}
-                  onClick={event => { event.preventDefault(); onSelectAd(ad); }}
-                  className="liquid-glass-card p-3.5 rounded-3xl flex items-center space-x-3.5 border border-white/70 dark:border-white/10 active:scale-[0.97] active:bg-slate-200/50 dark:active:bg-slate-800/50 transition-all duration-200 cursor-pointer shadow-sm group no-underline"
+                  onClick={() => onSelectAd(ad)}
+                  className="liquid-glass-card p-3.5 rounded-3xl flex items-center space-x-3.5 border border-white/70 active:scale-[0.97] active:bg-slate-200/50 transition-all duration-200 cursor-pointer shadow-sm group"
                 >
                   {/* Thumbnail photo */}
-                  <div className="relative w-20 h-20 rounded-2xl overflow-hidden bg-slate-100 dark:bg-slate-800 flex-shrink-0 shadow-sm border border-black/5 dark:border-white/5">
+                  <div className="relative w-20 h-20 rounded-2xl overflow-hidden bg-slate-100 flex-shrink-0 shadow-sm border border-black/5">
                     <img
                       src={ad.photos[0] || 'https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&q=80&w=200'}
                       alt={ad.petName || 'Питомец'}
@@ -488,7 +480,7 @@ export const MapView: React.FC<MapViewProps> = ({
                   {/* Info details */}
                   <div className="flex-1 min-w-0 space-y-1">
                     <div className="flex items-center justify-between">
-                      <h4 className="text-sm font-bold text-slate-900 dark:text-slate-100 truncate">
+                      <h4 className="text-sm font-bold text-slate-900 truncate">
                         {ad.petName || 'Питомец без имени'}
                       </h4>
                       <span className="text-[11px] text-slate-400 font-medium">
@@ -496,13 +488,13 @@ export const MapView: React.FC<MapViewProps> = ({
                       </span>
                     </div>
 
-                    <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2 leading-snug">
+                    <p className="text-xs text-slate-500 line-clamp-2 leading-snug">
                       {ad.description}
                     </p>
 
                     <div className="flex items-center space-x-3 text-[10px] text-slate-400 font-medium pt-0.5">
                       <div className="flex items-center space-x-1 truncate">
-                        <MapPin className="w-3 h-3 text-[#008E3A] flex-shrink-0" />
+                        <MapPin className="w-3 h-3 text-[#0C8C50] flex-shrink-0" />
                         <span className="truncate">{ad.lat.toFixed(4)}, {ad.lng.toFixed(4)}</span>
                       </div>
                       <span>•</span>
@@ -511,10 +503,10 @@ export const MapView: React.FC<MapViewProps> = ({
                   </div>
 
                   {/* Chevron Right */}
-                  <div className="w-7 h-7 rounded-full bg-slate-100/80 dark:bg-slate-800/80 text-slate-400 group-hover:text-[#008E3A] group-hover:bg-[#008E3A]/10 flex items-center justify-center transition flex-shrink-0">
+                  <div className="w-7 h-7 rounded-full bg-slate-100/80 text-slate-400 group-hover:text-[#0C8C50] group-hover:bg-[#087747]/10 flex items-center justify-center transition flex-shrink-0">
                     <ChevronRight className="w-4 h-4" />
                   </div>
-                </a>
+                </div>
               );
             })}
           </div>
@@ -523,25 +515,25 @@ export const MapView: React.FC<MapViewProps> = ({
 
       {locationHelpOpen && (
         <div className="fixed inset-0 z-[2400] flex items-center justify-center bg-slate-950/45 backdrop-blur-sm p-4">
-          <div className="relative w-full max-w-sm rounded-3xl bg-white dark:bg-slate-900 p-5 shadow-2xl space-y-4 animate-[app-rise_260ms_cubic-bezier(0.22,1,0.36,1)_both]">
+          <div className="relative w-full max-w-sm rounded-3xl bg-white p-5 shadow-2xl space-y-4 animate-[app-rise_260ms_cubic-bezier(0.22,1,0.36,1)_both]">
             <button
               type="button"
               onClick={() => setLocationHelpOpen(false)}
-              className="absolute right-4 top-4 w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-500"
+              className="absolute right-4 top-4 w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500"
               aria-label="Закрыть"
             >
               <X className="w-4 h-4" />
             </button>
-            <div className="w-11 h-11 rounded-2xl bg-[#008E3A]/15 text-[#008E3A] flex items-center justify-center">
+            <div className="w-11 h-11 rounded-2xl bg-[#087747]/15 text-[#0C8C50] flex items-center justify-center">
               <Settings className="w-5 h-5" />
             </div>
             <div className="space-y-1.5 pr-8">
               <h3 className="text-base font-bold">Разрешите доступ к геопозиции</h3>
-              <p className="text-xs leading-relaxed text-slate-500 dark:text-slate-400">
+              <p className="text-xs leading-relaxed text-slate-500">
                 Доступ к геопозиции отклонён браузером или системой. Проверьте разрешения и повторите запрос.
               </p>
             </div>
-            <div className="space-y-2 text-xs text-slate-700 dark:text-slate-300">
+            <div className="space-y-2 text-xs text-slate-700">
               <p><strong>1.</strong> В настройках устройства разрешите доступ к местоположению для браузера.</p>
               <p><strong>2.</strong> В настройках сайта разрешите геопозицию для losthvost.ru.</p>
               <p><strong>3.</strong> Вернитесь на сайт и повторите запрос.</p>
@@ -551,14 +543,14 @@ export const MapView: React.FC<MapViewProps> = ({
                 type="button"
                 onClick={handleGetLocation}
                 disabled={locationLoading}
-                className="w-full h-11 rounded-2xl bg-[#008E3A] text-white text-sm font-semibold disabled:opacity-60"
+                className="w-full h-11 rounded-2xl bg-[#087747] text-white text-sm font-semibold disabled:opacity-60"
               >
                 Запросить ещё раз
               </button>
               <button
                 type="button"
                 onClick={() => setLocationHelpOpen(false)}
-                className="w-full h-10 rounded-2xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 text-sm font-semibold"
+                className="w-full h-10 rounded-2xl bg-slate-100 text-slate-700 text-sm font-semibold"
               >
                 Закрыть
               </button>

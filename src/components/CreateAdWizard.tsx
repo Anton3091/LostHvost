@@ -4,7 +4,7 @@ import { ArrowLeft, ArrowRight, Upload, Trash2, Locate, Sparkles, CheckCircle2, 
 import { motion, AnimatePresence } from 'motion/react';
 import { AdType, AdCategory } from '../types';
 import { CaptchaWidget } from './CaptchaWidget';
-import { cartoPickerTileUrl, useSystemDarkMode } from '../theme';
+import { cartoPickerTileUrl } from '../theme';
 import { getCurrentLocation, isGeolocationPermissionDenied } from '../geolocation';
 
 interface CreateAdWizardProps {
@@ -20,7 +20,6 @@ export const CreateAdWizard: React.FC<CreateAdWizardProps> = ({
   onReportIssue,
   prefillData
 }) => {
-  const isDarkMode = useSystemDarkMode();
   const [step, setStep] = useState(1);
   const [currentAdId, setCurrentAdId] = useState<string | undefined>(prefillData?.id);
 
@@ -159,7 +158,7 @@ export const CreateAdWizard: React.FC<CreateAdWizardProps> = ({
 
       map.attributionControl.setPrefix(false);
 
-      pickerTileLayer.current = L.tileLayer(cartoPickerTileUrl(isDarkMode), {
+      pickerTileLayer.current = L.tileLayer(cartoPickerTileUrl, {
         maxZoom: 19
       }).addTo(map);
 
@@ -167,7 +166,7 @@ export const CreateAdWizard: React.FC<CreateAdWizardProps> = ({
 
       const pinIcon = L.divIcon({
         className: 'pin-picker-marker',
-        html: `<div style="background: #008E3A; width: 32px; height: 32px; border-radius: 50%; border: 3px solid white; color: white; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(0,0,0,0.3); font-size: 16px;">📍</div>`,
+        html: `<div style="background: #0C8C50; width: 32px; height: 32px; border-radius: 50%; border: 3px solid white; color: white; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(0,0,0,0.3); font-size: 16px;">📍</div>`,
         iconSize: [32, 32],
         iconAnchor: [16, 16]
       });
@@ -188,11 +187,7 @@ export const CreateAdWizard: React.FC<CreateAdWizardProps> = ({
 
       leafletPickerMap.current = map;
     }
-  }, [step, isDarkMode]);
-
-  useEffect(() => {
-    pickerTileLayer.current?.setUrl(cartoPickerTileUrl(isDarkMode));
-  }, [isDarkMode]);
+  }, [step]);
 
   // Validation before next step
   const validateAndNext = () => {
@@ -275,17 +270,17 @@ export const CreateAdWizard: React.FC<CreateAdWizardProps> = ({
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 10 }}
           transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-          className="relative z-10 liquid-glass w-full max-w-lg rounded-3xl overflow-hidden my-auto flex flex-col max-h-[92vh] text-slate-900 dark:text-slate-100 shadow-2xl"
+          className="relative z-10 liquid-glass w-full max-w-lg rounded-3xl overflow-hidden my-auto flex flex-col max-h-[92vh] text-slate-900 shadow-2xl"
         >
           {/* Header */}
-        <div className="p-4 border-b border-slate-200/50 dark:border-slate-800/50 flex items-center justify-between">
+        <div className="p-4 border-b border-slate-200/50 flex items-center justify-between">
           <div>
             <h2 className="text-base font-bold">
               Новое объявление ({step} из 5)
             </h2>
-            <div className="w-48 bg-slate-200/60 dark:bg-slate-800/60 h-1.5 rounded-full overflow-hidden mt-1">
+            <div className="w-48 bg-slate-200/60 h-1.5 rounded-full overflow-hidden mt-1">
               <div
-                className="bg-[#008E3A] h-full transition-all duration-300"
+                className="bg-[#087747] h-full transition-all duration-300"
                 style={{ width: `${(step / 5) * 100}%` }}
               />
             </div>
@@ -293,7 +288,7 @@ export const CreateAdWizard: React.FC<CreateAdWizardProps> = ({
           <button
             onClick={onClose}
             aria-label="Закрыть"
-            className="w-10 h-10 rounded-full bg-slate-200/60 dark:bg-slate-800/60 text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 flex items-center justify-center transition cursor-pointer"
+            className="w-10 h-10 rounded-full bg-slate-200/60 text-slate-500 hover:text-slate-800 flex items-center justify-center transition cursor-pointer"
           >
             <X className="w-5 h-5 stroke-[2.5]" />
           </button>
@@ -302,7 +297,7 @@ export const CreateAdWizard: React.FC<CreateAdWizardProps> = ({
         {/* Wizard Body */}
         <div className="p-5 overflow-y-auto space-y-4">
           {error && (
-            <div className="p-3 bg-rose-50 dark:bg-rose-950/50 text-rose-600 dark:text-rose-400 text-xs rounded-xl flex items-center space-x-2 border border-rose-200 dark:border-rose-900">
+            <div className="p-3 bg-rose-50 text-rose-600 text-xs rounded-xl flex items-center space-x-2 border border-rose-200">
               <AlertCircle className="w-4 h-4 flex-shrink-0" />
               <span>{error}</span>
             </div>
@@ -311,7 +306,7 @@ export const CreateAdWizard: React.FC<CreateAdWizardProps> = ({
           {/* STEP 1: Type */}
           {step === 1 && (
             <div className="space-y-3">
-              <h3 className="text-sm font-semibold text-slate-800 dark:text-slate-200">
+              <h3 className="text-sm font-semibold text-slate-800">
                 Шаг 1: Укажите тип объявления
               </h3>
               <div className="grid grid-cols-2 gap-3">
@@ -320,13 +315,13 @@ export const CreateAdWizard: React.FC<CreateAdWizardProps> = ({
                   onClick={() => setType('lost')}
                   className={`p-4 rounded-xl border-2 text-center transition cursor-pointer ${
                     type === 'lost'
-                      ? 'border-orange-500 bg-orange-50 dark:bg-orange-950/40 text-orange-800 dark:text-orange-300 font-bold'
-                      : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300'
+                      ? 'border-orange-500 bg-orange-50 text-orange-800 font-bold'
+                      : 'border-slate-200 bg-slate-50 text-slate-700'
                   }`}
                 >
                   <span className="text-2xl block mb-1">🔍</span>
                   <span className="text-sm">ПОТЕРЯЛ</span>
-                  <p className="text-[11px] font-normal text-slate-500 dark:text-slate-400 mt-1">
+                  <p className="text-[11px] font-normal text-slate-500 mt-1">
                     Мой питомец убежал или потерялся
                   </p>
                 </button>
@@ -336,13 +331,13 @@ export const CreateAdWizard: React.FC<CreateAdWizardProps> = ({
                   onClick={() => setType('found')}
                   className={`p-4 rounded-xl border-2 text-center transition cursor-pointer ${
                     type === 'found'
-                      ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 font-bold'
-                      : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300'
+                      ? 'border-emerald-500 bg-emerald-50 text-emerald-800 font-bold'
+                      : 'border-slate-200 bg-slate-50 text-slate-700'
                   }`}
                 >
                   <span className="text-2xl block mb-1">🏠</span>
                   <span className="text-sm">НАШЁЛ</span>
-                  <p className="text-[11px] font-normal text-slate-500 dark:text-slate-400 mt-1">
+                  <p className="text-[11px] font-normal text-slate-500 mt-1">
                     Я нашел чужого питомца
                   </p>
                 </button>
@@ -353,7 +348,7 @@ export const CreateAdWizard: React.FC<CreateAdWizardProps> = ({
           {/* STEP 2: Category */}
           {step === 2 && (
             <div className="space-y-3">
-              <h3 className="text-sm font-semibold text-slate-800 dark:text-slate-200">
+              <h3 className="text-sm font-semibold text-slate-800">
                 Шаг 2: Выберите категорию животного
               </h3>
               <div className="grid grid-cols-3 gap-3">
@@ -368,8 +363,8 @@ export const CreateAdWizard: React.FC<CreateAdWizardProps> = ({
                     onClick={() => setCategory(item.id as AdCategory)}
                     className={`p-4 rounded-xl border-2 text-center transition cursor-pointer ${
                       category === item.id
-                        ? 'border-[#008E3A] bg-emerald-50 dark:bg-emerald-950/40 text-[#008E3A] font-bold'
-                        : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300'
+                        ? 'border-[#0C8C50] bg-emerald-50 text-[#0C8C50] font-bold'
+                        : 'border-slate-200 bg-slate-50 text-slate-700'
                     }`}
                   >
                     <span className="text-2xl block mb-1">{item.icon}</span>
@@ -384,7 +379,7 @@ export const CreateAdWizard: React.FC<CreateAdWizardProps> = ({
           {step === 3 && (
             <div className="space-y-4">
               <div className="flex justify-between items-center">
-                <h3 className="text-sm font-semibold text-slate-800 dark:text-slate-200">
+                <h3 className="text-sm font-semibold text-slate-800">
                   Шаг 3: Данные объявления
                 </h3>
                 <span className="text-xs text-slate-500">{photos.length} / 3</span>
@@ -392,7 +387,7 @@ export const CreateAdWizard: React.FC<CreateAdWizardProps> = ({
 
               <div className="grid grid-cols-3 gap-3">
                 {photos.map((p, idx) => (
-                  <div key={idx} className="relative aspect-square rounded-xl overflow-hidden border border-slate-200 dark:border-slate-800">
+                  <div key={idx} className="relative aspect-square rounded-xl overflow-hidden border border-slate-200">
                     <img src={p} alt="Загруженное фото" className="w-full h-full object-cover" />
                     <button
                       type="button"
@@ -405,9 +400,9 @@ export const CreateAdWizard: React.FC<CreateAdWizardProps> = ({
                 ))}
 
                 {photos.length < 3 && (
-                  <label className="aspect-square rounded-xl border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-[#008E3A] dark:hover:border-[#008E3A] flex flex-col items-center justify-center p-2 text-center cursor-pointer transition bg-slate-50 dark:bg-slate-800/40">
+                  <label className="aspect-square rounded-xl border-2 border-dashed border-slate-300 hover:border-[#0C8C50] flex flex-col items-center justify-center p-2 text-center cursor-pointer transition bg-slate-50">
                     <Upload className="w-6 h-6 text-slate-400 mb-1" />
-                    <span className="text-[11px] font-medium text-slate-600 dark:text-slate-300">
+                    <span className="text-[11px] font-medium text-slate-600">
                       Добавить фото
                     </span>
                     <input
@@ -425,7 +420,7 @@ export const CreateAdWizard: React.FC<CreateAdWizardProps> = ({
               </p>
 
               <div className="space-y-1">
-                <label className="text-xs font-medium text-slate-700 dark:text-slate-300">
+                <label className="text-xs font-medium text-slate-700">
                   Кличка {type === 'lost' ? <span className="text-rose-500">* (Обязательно)</span> : '(Если известна)'}
                 </label>
                 <input
@@ -433,12 +428,12 @@ export const CreateAdWizard: React.FC<CreateAdWizardProps> = ({
                   value={petName}
                   onChange={e => setPetName(e.target.value)}
                   placeholder={type === 'lost' ? 'Например: Барсик' : 'Например: Мухтар (если есть ошейник)'}
-                  className="w-full border border-slate-200 dark:border-slate-800 rounded-xl p-2.5 text-xs bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-[#008E3A]"
+                  className="w-full border border-slate-200 rounded-xl p-2.5 text-xs bg-slate-50 text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#0C8C50]"
                 />
               </div>
 
               <div className="space-y-1">
-                <label className="text-xs font-medium text-slate-700 dark:text-slate-300">
+                <label className="text-xs font-medium text-slate-700">
                   Описание и особые приметы <span className="text-rose-500">*</span>
                 </label>
                 <textarea
@@ -446,12 +441,12 @@ export const CreateAdWizard: React.FC<CreateAdWizardProps> = ({
                   value={description}
                   onChange={e => setDescription(e.target.value)}
                   placeholder="Опишите окрас, породу, ошейник, состояние здоровья, где виден питомец..."
-                  className="w-full border border-slate-200 dark:border-slate-800 rounded-xl p-2.5 text-xs bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-[#008E3A]"
+                  className="w-full border border-slate-200 rounded-xl p-2.5 text-xs bg-slate-50 text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#0C8C50]"
                 />
               </div>
 
               <div className="space-y-1">
-                <label className="text-xs font-medium text-slate-700 dark:text-slate-300">
+                <label className="text-xs font-medium text-slate-700">
                   Имя контактного лица <span className="text-rose-500">*</span>
                 </label>
                 <input
@@ -459,12 +454,12 @@ export const CreateAdWizard: React.FC<CreateAdWizardProps> = ({
                   value={contactName}
                   onChange={e => setContactName(e.target.value)}
                   placeholder="Ваше имя"
-                  className="w-full border border-slate-200 dark:border-slate-800 rounded-xl p-2.5 text-xs bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-[#008E3A]"
+                  className="w-full border border-slate-200 rounded-xl p-2.5 text-xs bg-slate-50 text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#0C8C50]"
                 />
               </div>
 
               <div className="space-y-1">
-                <label className="text-xs font-medium text-slate-700 dark:text-slate-300">
+                <label className="text-xs font-medium text-slate-700">
                   Номер телефона <span className="text-rose-500">*</span>
                 </label>
                 <div className="relative">
@@ -476,7 +471,7 @@ export const CreateAdWizard: React.FC<CreateAdWizardProps> = ({
                     value={phone}
                     onChange={e => handlePhoneChange(e.target.value)}
                     placeholder="+7 (916) 123-45-67"
-                    className="w-full border border-slate-200 dark:border-slate-800 rounded-xl p-2.5 pl-9 text-xs font-mono bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-[#008E3A]"
+                    className="w-full border border-slate-200 rounded-xl p-2.5 pl-9 text-xs font-mono bg-slate-50 text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#0C8C50]"
                   />
                 </div>
                 <p className="text-[11px] text-slate-400">
@@ -489,14 +484,14 @@ export const CreateAdWizard: React.FC<CreateAdWizardProps> = ({
           {/* STEP 4: Location */}
           {step === 4 && (
             <div className="space-y-3">
-              <h3 className="text-sm font-semibold text-slate-800 dark:text-slate-200">
+              <h3 className="text-sm font-semibold text-slate-800">
                 Шаг 4: Укажите точное место на карте
               </h3>
               <p className="text-xs text-slate-500">
                 Кликните по карте или перетащите маркер в точку пропажи / обнаружения.
               </p>
 
-              <div className="relative w-full h-56 rounded-xl overflow-hidden border border-slate-200 dark:border-slate-800">
+              <div className="relative w-full h-56 rounded-xl overflow-hidden border border-slate-200">
                 <div ref={pickerMapRef} className="w-full h-full" />
                 <button
                   type="button"
@@ -504,13 +499,13 @@ export const CreateAdWizard: React.FC<CreateAdWizardProps> = ({
                   disabled={locationLoading}
                   title={locationLoading ? 'Определяем местоположение' : 'Моё местоположение'}
                   aria-label={locationLoading ? 'Определяем местоположение' : 'Моё местоположение'}
-                  className="absolute bottom-20 right-2 z-[1000] w-9 h-9 liquid-glass text-slate-800 dark:text-slate-100 rounded-full flex items-center justify-center shadow-md cursor-pointer disabled:opacity-60 disabled:cursor-wait"
+                  className="absolute bottom-20 right-2 z-[1000] w-9 h-9 liquid-glass text-slate-800 rounded-full flex items-center justify-center shadow-md cursor-pointer disabled:opacity-60 disabled:cursor-wait"
                 >
-                  <Locate className={`w-4 h-4 text-[#008E3A] ${locationLoading ? 'animate-pulse' : ''}`} />
+                  <Locate className={`w-4 h-4 text-[#0C8C50] ${locationLoading ? 'animate-pulse' : ''}`} />
                 </button>
               </div>
 
-              <div className="text-[11px] text-slate-500 bg-slate-50 dark:bg-slate-800 p-2 rounded-lg">
+              <div className="text-[11px] text-slate-500 bg-slate-50 p-2 rounded-lg">
                 Координаты: {lat.toFixed(6)}, {lng.toFixed(6)}
               </div>
             </div>
@@ -519,13 +514,13 @@ export const CreateAdWizard: React.FC<CreateAdWizardProps> = ({
           {/* STEP 5: Moderation & Publish */}
           {step === 5 && (
             <div className="space-y-4">
-              <h3 className="text-sm font-semibold text-slate-800 dark:text-slate-200">
+              <h3 className="text-sm font-semibold text-slate-800">
                 Шаг 5: Проверка безопасности и публикация
               </h3>
 
               {!moderationResult ? (
                 <>
-                  <div className="bg-emerald-50 dark:bg-emerald-950/40 p-3 rounded-xl border border-emerald-100 dark:border-emerald-900 text-xs text-emerald-800 dark:text-emerald-300 space-y-1">
+                  <div className="bg-emerald-50 p-3 rounded-xl border border-emerald-100 text-xs text-emerald-800 space-y-1">
                     <p className="font-semibold">Проверьте данные объявления перед отправкой:</p>
                     <p>• Тип: {type === 'lost' ? 'Потерял' : 'Нашёл'} ({category === 'cat' ? 'Кошка' : category === 'dog' ? 'Собака' : 'Другое'})</p>
                     <p>• Кличка: {petName || 'Не указана'}</p>
@@ -541,7 +536,7 @@ export const CreateAdWizard: React.FC<CreateAdWizardProps> = ({
                   <button
                     disabled={!captchaToken || isSubmitting}
                     onClick={handleSubmit}
-                    className="w-full bg-[#008E3A] hover:bg-[#007A32] disabled:opacity-50 text-white font-semibold py-3 px-4 rounded-xl shadow transition flex items-center justify-center space-x-2 text-xs cursor-pointer"
+                    className="w-full bg-[#087747] hover:bg-[#06683D] disabled:opacity-50 text-white font-semibold py-3 px-4 rounded-xl shadow transition flex items-center justify-center space-x-2 text-xs cursor-pointer"
                   >
                     {isSubmitting ? (
                       <>
@@ -557,7 +552,7 @@ export const CreateAdWizard: React.FC<CreateAdWizardProps> = ({
                   </button>
                 </>
               ) : moderationResult === 'success' ? (
-                <div className="p-5 bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 text-emerald-800 dark:text-emerald-200 rounded-2xl text-center space-y-2">
+                <div className="p-5 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-2xl text-center space-y-2">
                   <CheckCircle2 className="w-10 h-10 text-emerald-500 mx-auto" />
                   <h4 className="font-bold text-sm">Объявление прошло модерацию и опубликовано!</h4>
                   <p className="text-xs">Оно появится на карте и просуществует 7 суток.</p>
@@ -569,7 +564,7 @@ export const CreateAdWizard: React.FC<CreateAdWizardProps> = ({
                   </button>
                 </div>
               ) : moderationResult === 'pending' ? (
-                <div className="p-5 bg-amber-50 dark:bg-amber-950/50 border border-amber-200 text-amber-800 dark:text-amber-200 rounded-2xl text-center space-y-2">
+                <div className="p-5 bg-amber-50 border border-amber-200 text-amber-800 rounded-2xl text-center space-y-2">
                   <Sparkles className="w-10 h-10 text-amber-500 mx-auto animate-pulse" />
                   <h4 className="font-bold text-sm">Ожидает автоматической модерации</h4>
                   <p className="text-xs">Сервис нейросети временно перезагружается. Проверка выполнится автоматически в ближайшее время.</p>
@@ -581,7 +576,7 @@ export const CreateAdWizard: React.FC<CreateAdWizardProps> = ({
                   </button>
                 </div>
               ) : (
-                <div className="p-5 bg-rose-50 dark:bg-rose-950/50 border border-rose-200 text-rose-800 dark:text-rose-200 rounded-2xl text-center space-y-2">
+                <div className="p-5 bg-rose-50 border border-rose-200 text-rose-800 rounded-2xl text-center space-y-2">
                   <AlertCircle className="w-10 h-10 text-rose-500 mx-auto" />
                   <h4 className="font-bold text-sm">Объявление отклонено модератором</h4>
                   <p className="text-xs">Содержание или фотография не соответствуют правилам публикации домашних животных.</p>
@@ -594,7 +589,7 @@ export const CreateAdWizard: React.FC<CreateAdWizardProps> = ({
                     </button>
                     <button
                       onClick={() => onReportIssue({ id: currentAdId, status: 'rejected' }, lastModerationRequestId)}
-                      className="flex-1 bg-white/70 dark:bg-slate-900/60 text-rose-700 dark:text-rose-200 font-medium px-4 py-2.5 rounded-xl text-xs cursor-pointer border border-rose-200 dark:border-rose-800"
+                      className="flex-1 bg-white/70 text-rose-700 font-medium px-4 py-2.5 rounded-xl text-xs cursor-pointer border border-rose-200"
                     >
                       Сообщить о проблеме
                     </button>
@@ -607,12 +602,12 @@ export const CreateAdWizard: React.FC<CreateAdWizardProps> = ({
 
         {/* Wizard Footer Navigation */}
         {!moderationResult && (
-          <div className="p-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
+          <div className="p-4 border-t border-slate-100 flex items-center justify-between">
             {step > 1 ? (
               <button
                 type="button"
                 onClick={() => setStep(prev => prev - 1)}
-                className="px-5 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-sm font-semibold flex items-center space-x-1.5 transition cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-700"
+                className="px-5 py-2.5 rounded-xl bg-slate-100 text-slate-700 text-sm font-semibold flex items-center space-x-1.5 transition cursor-pointer hover:bg-slate-200"
               >
                 <ArrowLeft className="w-4 h-4" />
                 <span>Назад</span>
@@ -625,7 +620,7 @@ export const CreateAdWizard: React.FC<CreateAdWizardProps> = ({
               <button
                 type="button"
                 onClick={validateAndNext}
-                className="px-6 py-2.5 rounded-xl bg-[#008E3A] hover:bg-[#007A32] text-white text-sm font-semibold flex items-center space-x-1.5 shadow-md shadow-emerald-700/20 transition cursor-pointer"
+                className="px-6 py-2.5 rounded-xl bg-[#087747] hover:bg-[#06683D] text-white text-sm font-semibold flex items-center space-x-1.5 shadow-md shadow-emerald-700/20 transition cursor-pointer"
               >
                 <span>Далее</span>
                 <ArrowRight className="w-4 h-4" />

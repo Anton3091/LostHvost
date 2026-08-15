@@ -106,33 +106,33 @@ export const AdDetailsModal: React.FC<AdDetailsModalProps> = ({
           animate={{ y: 0 }}
           exit={{ y: '100%' }}
           transition={{ type: 'spring', damping: 28, stiffness: 300 }}
-          className="relative z-10 w-full max-w-2xl mx-auto bg-white/80 dark:bg-slate-900/80 backdrop-blur-2xl border-t border-white/60 dark:border-white/10 rounded-t-[36px] shadow-[0_-12px_48px_rgba(0,0,0,0.18)] max-h-[88vh] flex flex-col overflow-hidden text-slate-900 dark:text-slate-100"
+          className="relative z-10 w-full max-w-2xl mx-auto bg-white/80 backdrop-blur-2xl border-t border-white/60 rounded-t-[36px] shadow-[0_-12px_48px_rgba(0,0,0,0.18)] max-h-[88vh] flex flex-col overflow-hidden text-slate-900"
         >
           {/* iOS Bottom Sheet Drag Handle Bar */}
           <div className="w-full pt-3 pb-1 flex flex-col items-center justify-center cursor-grab active:cursor-grabbing">
-            <div className="w-12 h-1.5 bg-slate-300 dark:bg-slate-600 rounded-full" />
+            <div className="w-12 h-1.5 bg-slate-300 rounded-full" />
           </div>
 
           {/* Top Bar with Title & Close Button */}
-          <div className="flex items-center justify-between px-6 py-2.5 border-b border-slate-200/50 dark:border-slate-800/50">
+          <div className="flex items-center justify-between px-6 py-2.5 border-b border-slate-200/50">
             <div className="flex items-center space-x-2.5">
               <span
                 className={`px-3 py-1 rounded-full text-[11px] font-bold tracking-wide uppercase shadow-sm ${
                   isLost
-                    ? 'bg-[#FF9500]/15 text-[#D97706] dark:text-[#FFB340] border border-[#FF9500]/30'
-                    : 'bg-[#34C759]/15 text-[#15803D] dark:text-[#4ADE80] border border-[#34C759]/30'
+                    ? 'bg-[#FF9500]/15 text-[#D97706] border border-[#FF9500]/30'
+                    : 'bg-[#34C759]/15 text-[#15803D] border border-[#34C759]/30'
                 }`}
               >
                 {isLost ? 'Потерялся' : 'Найден'}
               </span>
-              <span className="bg-slate-100/80 dark:bg-slate-800/80 text-slate-700 dark:text-slate-300 text-[11px] px-3 py-1 rounded-full font-medium border border-slate-200/60 dark:border-slate-700/60">
+              <span className="bg-slate-100/80 text-slate-700 text-[11px] px-3 py-1 rounded-full font-medium border border-slate-200/60">
                 {ad.category === 'cat' ? '🐱 Кошка' : ad.category === 'dog' ? '🐶 Собака' : '🐾 Питомец'}
               </span>
             </div>
 
             <button
               onClick={onClose}
-              className="w-8 h-8 rounded-full bg-slate-200/60 dark:bg-slate-800/60 text-slate-600 dark:text-slate-300 hover:bg-slate-300/80 dark:hover:bg-slate-700/80 flex items-center justify-center transition active:scale-90 cursor-pointer"
+              className="w-8 h-8 rounded-full bg-slate-200/60 text-slate-600 hover:bg-slate-300/80 flex items-center justify-center transition active:scale-90 cursor-pointer"
             >
               <X className="w-4 h-4" />
             </button>
@@ -143,7 +143,7 @@ export const AdDetailsModal: React.FC<AdDetailsModalProps> = ({
             {/* Photos Gallery */}
             {ad.photos && ad.photos.length > 0 && (
               <div className="space-y-3">
-                <div className="relative aspect-[4/3] w-full rounded-3xl overflow-hidden bg-slate-100 dark:bg-slate-800/50 border border-white/60 dark:border-white/10 shadow-sm">
+                <div className="relative aspect-[4/3] w-full rounded-3xl overflow-hidden bg-slate-100 border border-white/60 shadow-sm">
                   <img
                     src={ad.photos[activePhotoIdx]}
                     alt="Фото питомца"
@@ -156,13 +156,13 @@ export const AdDetailsModal: React.FC<AdDetailsModalProps> = ({
                         onClick={() =>
                           setActivePhotoIdx((activePhotoIdx - 1 + ad.photos.length) % ad.photos.length)
                         }
-                        className="absolute left-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full liquid-glass flex items-center justify-center text-slate-800 dark:text-slate-100 hover:scale-105 active:scale-95 transition"
+                        className="absolute left-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full liquid-glass flex items-center justify-center text-slate-800 hover:scale-105 active:scale-95 transition"
                       >
                         <ChevronLeft className="w-5 h-5" />
                       </button>
                       <button
                         onClick={() => setActivePhotoIdx((activePhotoIdx + 1) % ad.photos.length)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full liquid-glass flex items-center justify-center text-slate-800 dark:text-slate-100 hover:scale-105 active:scale-95 transition"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full liquid-glass flex items-center justify-center text-slate-800 hover:scale-105 active:scale-95 transition"
                       >
                         <ChevronRight className="w-5 h-5" />
                       </button>
@@ -178,7 +178,7 @@ export const AdDetailsModal: React.FC<AdDetailsModalProps> = ({
                         onClick={() => setActivePhotoIdx(idx)}
                         className={`w-14 h-14 rounded-2xl overflow-hidden border-2 transition cursor-pointer flex-shrink-0 ${
                           activePhotoIdx === idx
-                            ? 'border-[#008E3A] scale-105 shadow-md'
+                            ? 'border-[#0C8C50] scale-105 shadow-md'
                             : 'border-transparent opacity-60 hover:opacity-100'
                         }`}
                       >
@@ -192,10 +192,10 @@ export const AdDetailsModal: React.FC<AdDetailsModalProps> = ({
 
             {/* Pet Name & Main Info */}
             <div className="space-y-1">
-              <h2 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
+              <h2 className="text-2xl font-bold tracking-tight text-slate-900">
                 {ad.petName || (isLost ? 'Без клички' : 'Питомец без имени')}
               </h2>
-              <div className="flex flex-wrap items-center gap-3 text-xs text-slate-500 dark:text-slate-400 font-medium">
+              <div className="flex flex-wrap items-center gap-3 text-xs text-slate-500 font-medium">
                 <div className="flex items-center space-x-1.5">
                   <Calendar className="w-3.5 h-3.5 text-slate-400" />
                   <span>Опубликовано: {new Date(ad.createdAt).toLocaleString('ru-RU')}</span>
@@ -209,22 +209,22 @@ export const AdDetailsModal: React.FC<AdDetailsModalProps> = ({
 
             {/* Description Box with Apple Liquid Glass Card */}
             <div className="liquid-glass-card p-4 rounded-3xl space-y-1.5">
-              <h3 className="text-[11px] font-bold text-slate-400 dark:text-slate-400 uppercase tracking-wider">
+              <h3 className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
                 Описание и приметы
               </h3>
-              <p className="text-sm text-slate-800 dark:text-slate-200 whitespace-pre-wrap leading-relaxed font-normal">
+              <p className="text-sm text-slate-800 whitespace-pre-wrap leading-relaxed font-normal">
                 {ad.description}
               </p>
             </div>
 
             {/* Location Pill */}
-            <div className="liquid-glass-card p-3.5 rounded-2xl flex items-center space-x-3 text-xs text-slate-700 dark:text-slate-300">
-              <div className="w-8 h-8 rounded-full bg-[#008E3A]/10 text-[#008E3A] flex items-center justify-center flex-shrink-0">
+            <div className="liquid-glass-card p-3.5 rounded-2xl flex items-center space-x-3 text-xs text-slate-700">
+              <div className="w-8 h-8 rounded-full bg-[#087747]/10 text-[#0C8C50] flex items-center justify-center flex-shrink-0">
                 <MapPin className="w-4 h-4" />
               </div>
               <div className="flex-1 min-w-0">
-                <div className="font-semibold text-slate-900 dark:text-slate-100">Геолокация метки</div>
-                <div className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
+                <div className="font-semibold text-slate-900">Геолокация метки</div>
+                <div className="text-[11px] text-slate-500 truncate">
                   {ad.lat.toFixed(6)}, {ad.lng.toFixed(6)}
                 </div>
               </div>
@@ -234,10 +234,10 @@ export const AdDetailsModal: React.FC<AdDetailsModalProps> = ({
             <div className="pt-2">
               {phone ? (
                 <div className="liquid-glass-card border border-emerald-500/30 p-4 rounded-3xl text-center space-y-3">
-                  <p className="text-xs text-emerald-700 dark:text-emerald-300 font-semibold">
+                  <p className="text-xs text-emerald-700 font-semibold">
                     Номер телефона контактера:
                   </p>
-                  <div className="text-2.5xl font-bold tracking-wider text-slate-900 dark:text-slate-100 font-mono">
+                  <div className="text-2.5xl font-bold tracking-wider text-slate-900 font-mono">
                     {phone}
                   </div>
                   <a
@@ -251,7 +251,7 @@ export const AdDetailsModal: React.FC<AdDetailsModalProps> = ({
               ) : (
                 <button
                   onClick={handleStartPhoneRequest}
-                  className="w-full bg-[#008E3A] hover:bg-[#007A32] text-white font-semibold py-3.5 px-5 rounded-2xl shadow-lg shadow-emerald-700/20 transition active:scale-[0.99] flex items-center justify-center space-x-2 text-sm cursor-pointer"
+                  className="w-full bg-[#087747] hover:bg-[#06683D] text-white font-semibold py-3.5 px-5 rounded-2xl shadow-lg shadow-emerald-700/20 transition active:scale-[0.99] flex items-center justify-center space-x-2 text-sm cursor-pointer"
                 >
                   <Phone className="w-4 h-4" />
                   <span>Показать контакты</span>
@@ -263,7 +263,7 @@ export const AdDetailsModal: React.FC<AdDetailsModalProps> = ({
             <div className="flex justify-center pt-2 pb-2">
               <button
                 onClick={() => setShowComplaintModal(true)}
-                className="text-xs text-slate-400 hover:text-rose-500 transition flex items-center space-x-1.5 cursor-pointer py-1 px-3 rounded-full hover:bg-slate-100/50 dark:hover:bg-slate-800/50"
+                className="text-xs text-slate-400 hover:text-rose-500 transition flex items-center space-x-1.5 cursor-pointer py-1 px-3 rounded-full hover:bg-slate-100/50"
               >
                 <ShieldAlert className="w-3.5 h-3.5" />
                 <span>Пожаловаться на объявление</span>
@@ -276,11 +276,11 @@ export const AdDetailsModal: React.FC<AdDetailsModalProps> = ({
       {/* Phone CAPTCHA Modal */}
       {showPhoneCaptcha && (
         <div className="fixed inset-0 z-[2200] bg-slate-950/60 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="liquid-glass w-full max-w-md rounded-3xl p-6 shadow-2xl space-y-4 text-slate-900 dark:text-slate-100">
+          <div className="liquid-glass w-full max-w-md rounded-3xl p-6 shadow-2xl space-y-4 text-slate-900">
             <h3 className="text-base font-bold">
               Защита от спама и парсинга
             </h3>
-            <p className="text-xs text-slate-500 dark:text-slate-400">
+            <p className="text-xs text-slate-500">
               Для получения номера телефона пройдите проверку безопасности.
             </p>
 
@@ -300,13 +300,13 @@ export const AdDetailsModal: React.FC<AdDetailsModalProps> = ({
               <button
                 disabled={!phoneCaptchaToken || phoneLoading}
                 onClick={handleConfirmPhoneRequest}
-                className="flex-1 bg-[#008E3A] hover:bg-[#007A32] disabled:opacity-50 text-white font-medium py-2.5 rounded-2xl text-xs transition cursor-pointer"
+                className="flex-1 bg-[#087747] hover:bg-[#06683D] disabled:opacity-50 text-white font-medium py-2.5 rounded-2xl text-xs transition cursor-pointer"
               >
                 {phoneLoading ? 'Загрузка...' : 'Подтвердить и открыть номер'}
               </button>
               <button
                 onClick={() => setShowPhoneCaptcha(false)}
-                className="bg-slate-200/60 dark:bg-slate-800/60 text-slate-600 dark:text-slate-300 font-medium px-4 py-2.5 rounded-2xl text-xs transition cursor-pointer"
+                className="bg-slate-200/60 text-slate-600 font-medium px-4 py-2.5 rounded-2xl text-xs transition cursor-pointer"
               >
                 Отмена
               </button>
@@ -320,7 +320,7 @@ export const AdDetailsModal: React.FC<AdDetailsModalProps> = ({
         <div className="fixed inset-0 z-[2200] bg-slate-950/60 backdrop-blur-md flex items-center justify-center p-4">
           <form
             onSubmit={handleSendComplaint}
-            className="liquid-glass w-full max-w-md rounded-3xl p-6 shadow-2xl space-y-4 text-slate-900 dark:text-slate-100"
+            className="liquid-glass w-full max-w-md rounded-3xl p-6 shadow-2xl space-y-4 text-slate-900"
           >
             <div className="flex items-center space-x-2 text-rose-500">
               <ShieldAlert className="w-5 h-5" />
@@ -330,14 +330,14 @@ export const AdDetailsModal: React.FC<AdDetailsModalProps> = ({
             </div>
 
             {complaintSuccess ? (
-              <div className="p-4 bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 rounded-2xl text-xs text-center flex flex-col items-center space-y-2">
+              <div className="p-4 bg-emerald-500/15 text-emerald-700 rounded-2xl text-xs text-center flex flex-col items-center space-y-2">
                 <Check className="w-8 h-8 text-emerald-500" />
                 <span>Жалоба принята. Объявление передано на проверку.</span>
               </div>
             ) : (
               <>
                 <div className="space-y-1">
-                  <label className="text-xs font-medium text-slate-700 dark:text-slate-300">
+                  <label className="text-xs font-medium text-slate-700">
                     Укажите причину жалобы:
                   </label>
                   <textarea
@@ -345,7 +345,7 @@ export const AdDetailsModal: React.FC<AdDetailsModalProps> = ({
                     value={complaintReason}
                     onChange={e => setComplaintReason(e.target.value)}
                     placeholder="Например: Спам, недостоверные контакты или подозрительный контент..."
-                    className="w-full border border-slate-200/80 dark:border-slate-800 rounded-2xl p-3 text-xs bg-white/60 dark:bg-slate-800/60 text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-rose-500 min-h-[80px]"
+                    className="w-full border border-slate-200/80 rounded-2xl p-3 text-xs bg-white/60 text-slate-800 focus:outline-none focus:ring-2 focus:ring-rose-500 min-h-[80px]"
                   />
                 </div>
 
@@ -372,7 +372,7 @@ export const AdDetailsModal: React.FC<AdDetailsModalProps> = ({
                   <button
                     type="button"
                     onClick={() => setShowComplaintModal(false)}
-                    className="bg-slate-200/60 dark:bg-slate-800/60 text-slate-600 dark:text-slate-300 font-medium px-4 py-2.5 rounded-2xl text-xs transition cursor-pointer"
+                    className="bg-slate-200/60 text-slate-600 font-medium px-4 py-2.5 rounded-2xl text-xs transition cursor-pointer"
                   >
                     Отмена
                   </button>
