@@ -284,7 +284,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               </button>
               <button
                 onClick={() => { setMode('register'); setError(null); setCaptchaToken(''); }}
-                className="text-[#0C8C50] font-semibold hover:underline cursor-pointer"
+                className="inline-flex min-h-9 items-center justify-center rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-sm font-semibold text-[#0C8C50] shadow-sm shadow-emerald-700/10 transition hover:bg-emerald-100 hover:shadow-md cursor-pointer"
               >
                 Регистрация
               </button>
