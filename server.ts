@@ -350,9 +350,10 @@ app.get('/main', (_req, res, next) => {
   const indexPath = path.join(process.cwd(), 'dist', 'index.html');
   let html = fs.readFileSync(indexPath, 'utf8');
   html = html
-    .replace('LostHvost — карта пропавших и найденных животных', 'LostHvost — поиск пропавших и найденных животных')
-    .replace('Поиск пропавших и найденных животных на карте LostHvost. Размещайте объявления, смотрите находки рядом и помогайте питомцам вернуться домой.', 'Поиск пропавших и найденных животных на карте LostHvost. Размещайте объявления и находите питомцев рядом.')
-    .replace('https://losthvost.ru/', 'https://losthvost.ru/main');
+    .replaceAll('LostHvost — карта пропавших и найденных животных', 'LostHvost — поиск пропавших и найденных животных')
+    .replaceAll('Поиск пропавших и найденных животных на карте LostHvost. Размещайте объявления, смотрите находки рядом и помогайте питомцам вернуться домой.', 'Поиск пропавших и найденных животных на карте LostHvost. Размещайте объявления и находите питомцев рядом.')
+    .replace('<link rel="canonical" href="https://losthvost.ru/" />', '<link rel="canonical" href="https://losthvost.ru/main" />')
+    .replace('<meta property="og:url" content="https://losthvost.ru/" />', '<meta property="og:url" content="https://losthvost.ru/main" />');
   res.type('html').setHeader('Cache-Control', 'no-cache').send(html);
 });
 app.get('/obyavleniya/:id/:slug?', (req, res) => {
