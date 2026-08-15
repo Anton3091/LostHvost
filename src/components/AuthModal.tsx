@@ -111,9 +111,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           className="relative z-10 liquid-glass w-full max-w-md rounded-3xl p-6 shadow-2xl space-y-4 text-slate-900"
         >
           <button
-          onClick={onClose}
-          className="absolute top-4 right-4 w-8 h-8 rounded-full bg-slate-200/60 text-slate-500 hover:text-slate-800 flex items-center justify-center transition cursor-pointer"
-        >
+            type="button"
+            onClick={onClose}
+            aria-label="Закрыть"
+            className="absolute top-4 right-4 w-8 h-8 rounded-full bg-slate-200/60 text-slate-500 hover:text-slate-800 flex items-center justify-center transition cursor-pointer"
+          >
           <X className="w-4 h-4" />
         </button>
 
