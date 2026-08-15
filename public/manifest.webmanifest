@@ -4,8 +4,8 @@
   "description": "Поиск пропавших и найденных домашних животных",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#f8fafc",
-  "theme_color": "#008e3a",
+  "background_color": "#fbfcf8",
+  "theme_color": "#fbfcf8",
   "icons": [
     { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
     { "src": "/losthvost.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
