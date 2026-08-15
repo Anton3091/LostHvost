@@ -98,7 +98,7 @@ export default function App() {
   const handleDeleteAccount = async () => { const data = await jsonFetch('/api/auth/delete-account', { method: 'POST' }); if (data.deleted) { setCurrentUser(null); setActiveScreen('map'); } else alert('На вашу почту отправлена ссылка для подтверждения удаления.'); };
   const handleChangePassword = async (currentPassword: string, newPassword: string) => { await jsonFetch('/api/auth/password/change', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ currentPassword, newPassword }) }); };
   const handleRequestPhone = async (adId: string, captchaToken: string) => (await jsonFetch(`/api/ads/${adId}/phone`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ captchaToken }) })).phone;
-  const handleSubmitComplaint = async (adId: string, reason: string, captchaToken: string) => { await jsonFetch(`/api/ads/${adId}/complaint`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ captchaToken, reason }) }); fetchAds(); };
+  const handleSubmitComplaint = async (adId: string, captchaToken: string) => { await jsonFetch(`/api/ads/${adId}/complaint`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ captchaToken }) }); fetchAds(); };
   const handleCreateAdSubmit = async (adData: any) => {
     const url = adData.id ? `/api/ads/${adData.id}` : '/api/ads';
     const method = adData.id ? 'PUT' : 'POST';

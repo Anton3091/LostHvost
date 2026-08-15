@@ -10,7 +10,7 @@ interface AdDetailsModalProps {
   currentUser: User | null;
   onOpenAuth: () => void;
   onRequestPhone: (adId: string, captchaToken: string) => Promise<string>;
-  onSubmitComplaint: (adId: string, reason: string, captchaToken: string) => Promise<void>;
+  onSubmitComplaint: (adId: string, captchaToken: string) => Promise<void>;
 }
 
 export const AdDetailsModal: React.FC<AdDetailsModalProps> = ({
@@ -32,7 +32,6 @@ export const AdDetailsModal: React.FC<AdDetailsModalProps> = ({
 
   // Complaint states
   const [showComplaintModal, setShowComplaintModal] = useState(false);
-  const [complaintReason, setComplaintReason] = useState('');
   const [complaintCaptchaToken, setComplaintCaptchaToken] = useState('');
   const [complaintLoading, setComplaintLoading] = useState(false);
   const [complaintSuccess, setComplaintSuccess] = useState(false);
@@ -73,12 +72,11 @@ export const AdDetailsModal: React.FC<AdDetailsModalProps> = ({
     setComplaintLoading(true);
     setComplaintError(null);
     try {
-      await onSubmitComplaint(ad.id, complaintReason, complaintCaptchaToken);
+      await onSubmitComplaint(ad.id, complaintCaptchaToken);
       setComplaintSuccess(true);
       setTimeout(() => {
         setShowComplaintModal(false);
         setComplaintSuccess(false);
-        setComplaintReason('');
       }, 2000);
     } catch (err: any) {
       setComplaintError(err.message || 'Не удалось отправить жалобу');
@@ -336,19 +334,6 @@ export const AdDetailsModal: React.FC<AdDetailsModalProps> = ({
               </div>
             ) : (
               <>
-                <div className="space-y-1">
-                  <label className="text-xs font-medium text-slate-700">
-                    Укажите причину жалобы:
-                  </label>
-                  <textarea
-                    required
-                    value={complaintReason}
-                    onChange={e => setComplaintReason(e.target.value)}
-                    placeholder="Например: Спам, недостоверные контакты или подозрительный контент..."
-                    className="w-full border border-slate-200/80 rounded-2xl p-3 text-xs bg-white/60 text-slate-800 focus:outline-none focus:ring-2 focus:ring-rose-500 min-h-[80px]"
-                  />
-                </div>
-
                 <CaptchaWidget
                   onVerify={setComplaintCaptchaToken}
                   isVerified={Boolean(complaintCaptchaToken)}
