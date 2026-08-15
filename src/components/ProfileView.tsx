@@ -20,6 +20,7 @@ import {
   Loader2
 } from 'lucide-react';
 import { User, AdItem, SystemLog } from '../types';
+import { PUSH_UNSUPPORTED_ERROR, PwaInstallGuideModal, PwaPushUnsupportedMessage } from './PwaInstallGuideModal';
 
 interface ProfileViewProps {
   user: User;
@@ -62,6 +63,8 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
   // Push settings state
   const [pushEnabled, setPushEnabled] = useState(user.notificationSettings?.push ?? false);
   const [settingsSaved, setSettingsSaved] = useState(false);
+  const [notificationError, setNotificationError] = useState<string | null>(null);
+  const [showPwaInstallGuide, setShowPwaInstallGuide] = useState(false);
   const [republishingAdId, setRepublishingAdId] = useState<string | null>(null);
 
   // Account Deletion Modal
@@ -89,9 +92,15 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
   });
 
   const handleSaveSettings = async (push: boolean) => {
-    await onUpdateNotificationSettings(push, user.notificationSettings?.email ?? false, user.notificationSettings?.telegram ?? false);
-    setSettingsSaved(true);
-    setTimeout(() => setSettingsSaved(false), 2000);
+    setNotificationError(null);
+    try {
+      await onUpdateNotificationSettings(push, user.notificationSettings?.email ?? false, user.notificationSettings?.telegram ?? false);
+      setSettingsSaved(true);
+      setTimeout(() => setSettingsSaved(false), 2000);
+    } catch (error: any) {
+      setPushEnabled(user.notificationSettings?.push ?? false);
+      setNotificationError(error?.message || 'Не удалось включить уведомления');
+    }
   };
   const handleRepublish = async (adId: string) => {
     setRepublishingAdId(adId);
@@ -178,6 +187,13 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
             className="w-5 h-5 rounded text-[#0C8C50] focus:ring-[#0C8C50] cursor-pointer"
           />
         </div>
+        {notificationError === PUSH_UNSUPPORTED_ERROR ? (
+          <div className="border-b border-slate-100 px-5 py-3">
+            <PwaPushUnsupportedMessage onOpenGuide={() => setShowPwaInstallGuide(true)} />
+          </div>
+        ) : notificationError ? (
+          <p className="border-b border-slate-100 px-5 py-3 text-xs font-semibold text-rose-600">{notificationError}</p>
+        ) : null}
 
         <button
           type="button"
@@ -562,6 +578,8 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
           </div>
         </div>
       )}
+
+      {showPwaInstallGuide && <PwaInstallGuideModal onClose={() => setShowPwaInstallGuide(false)} />}
     </div>
   );
 };

@@ -4,6 +4,7 @@ import { Locate, Bell, Check, Trash2, MapPin, ChevronRight, Settings, X, Loader2
 import { PublicAdItem, GeoSubscription } from '../types';
 import { cartoTileUrl } from '../theme';
 import { getCurrentLocation, isGeolocationPermissionDenied } from '../geolocation';
+import { PUSH_UNSUPPORTED_ERROR, PwaInstallGuideModal, PwaPushUnsupportedMessage } from './PwaInstallGuideModal';
 
 interface MapViewProps {
   ads: PublicAdItem[];
@@ -48,6 +49,7 @@ export const MapView: React.FC<MapViewProps> = ({
   const [subscriptionSaved, setSubscriptionSaved] = useState(false);
   const [subscriptionSaving, setSubscriptionSaving] = useState(false);
   const [subscriptionSaveError, setSubscriptionSaveError] = useState<string | null>(null);
+  const [showPwaInstallGuide, setShowPwaInstallGuide] = useState(false);
 
   useEffect(() => {
     if (isSubMode) return;
@@ -369,7 +371,11 @@ export const MapView: React.FC<MapViewProps> = ({
               ))}
             </div>
 
-            {subscriptionSaveError && <p className="text-xs font-semibold text-rose-600">{subscriptionSaveError}</p>}
+            {subscriptionSaveError === PUSH_UNSUPPORTED_ERROR ? (
+              <PwaPushUnsupportedMessage onOpenGuide={() => setShowPwaInstallGuide(true)} />
+            ) : subscriptionSaveError ? (
+              <p className="text-xs font-semibold text-rose-600">{subscriptionSaveError}</p>
+            ) : null}
 
             <div className="flex space-x-2 pt-1">
               <button
@@ -391,6 +397,8 @@ export const MapView: React.FC<MapViewProps> = ({
           </>
         )}
       </section>
+
+      {showPwaInstallGuide && <PwaInstallGuideModal onClose={() => setShowPwaInstallGuide(false)} />}
 
       {/* SECTION 2: MIDDLE MAP SECTION (INTEGRATED MAP CONTAINER) */}
       <section className="relative w-full h-[360px] rounded-3xl overflow-hidden shadow-xl border border-white/70 liquid-glass">
