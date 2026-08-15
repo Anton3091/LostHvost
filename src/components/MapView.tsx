@@ -412,8 +412,8 @@ export const MapView: React.FC<MapViewProps> = ({
           </div>
         </div>
 
-        {/* Floating Controls Overlay (Top-Right) */}
-        <div className="absolute bottom-20 right-3.5 z-[1000] flex flex-col space-y-2">
+        {/* Floating location control aligned left of the Leaflet zoom controls */}
+        <div className="absolute bottom-7 right-14 z-[1000]">
           <button
             type="button"
             onClick={handleGetLocation}
