@@ -33,6 +33,7 @@ export interface AdItem {
   description: string;
   lat: number;
   lng: number;
+  city?: string;
   createdAt: string; // ISO date string
   expiresAt: string; // ISO date string (createdAt + 7 days)
   unpublishedAt?: string; // ISO date string
@@ -53,6 +54,7 @@ export interface PublicAdItem {
   description: string;
   lat: number;
   lng: number;
+  city?: string;
   createdAt: string;
   expiresAt: string;
   status: AdStatus;
