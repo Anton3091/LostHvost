@@ -90,31 +90,34 @@ export default function App() {
   const handleUnpublishAd = async (adId: string) => { await jsonFetch(`/api/ads/${adId}/unpublish`, { method: 'POST' }); fetchAds(); fetchUserData(); };
   const handleRepublishAd = async (adId: string) => { await jsonFetch(`/api/ads/${adId}/republish`, { method: 'POST' }); fetchAds(); fetchUserData(); };
   const handleSelectAd = async (ad: PublicAdItem) => { try { const data = await jsonFetch(`/api/ads/${ad.id}`); setSelectedAd(data.ad); } catch (error: any) { alert(error.message); } };
-  const handleSaveSubscription = async (lat: number, lng: number, radius: number) => { const data = await jsonFetch('/api/subscription', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ lat, lng, radius }) }); setGeoSub(data.subscription); };
-  const handleDeleteSubscription = async () => { await jsonFetch('/api/subscription', { method: 'DELETE' }); setGeoSub(null); };
-
   const enablePush = async () => {
-    if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
+    if (!('serviceWorker' in navigator) || !('PushManager' in window) || !('Notification' in window)) throw new Error('Push-уведомления не поддерживаются этим браузером');
     const permission = await Notification.requestPermission();
     if (permission !== 'granted') throw new Error('Push-уведомления запрещены браузером');
     const registration = await navigator.serviceWorker.ready;
     const { publicKey } = await jsonFetch('/api/push/public-key');
-    if (!publicKey) return;
-    const subscription = await registration.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: urlBase64ToUint8Array(publicKey) });
+    if (!publicKey) throw new Error('Push-уведомления пока не настроены на сервере');
+    const existingSubscription = await registration.pushManager.getSubscription();
+    const subscription = existingSubscription || await registration.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: urlBase64ToUint8Array(publicKey) });
     await jsonFetch('/api/push/subscribe', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(subscription) });
   };
-  const handleUpdateNotificationSettings = async (push: boolean, email: boolean, telegram: boolean) => { if (push) await enablePush(); const data = await jsonFetch('/api/user/settings', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ push, email, telegram }) }); setCurrentUser(data.user); if (!push) setGeoSub(null); };
-  const handleCreateTelegramLink = async () => {
-    const telegramWindow = window.open('about:blank', '_blank');
-    try {
-      const data = await jsonFetch('/api/integrations/telegram/link');
-      if (telegramWindow) telegramWindow.location.href = data.url;
-      else window.location.href = data.url;
-    } catch (error) {
-      telegramWindow?.close();
-      throw error;
-    }
+  const handleSaveSubscription = async (lat: number, lng: number, radius: number) => {
+    await enablePush();
+    const settings = await jsonFetch('/api/user/settings', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        push: true,
+        email: currentUser?.notificationSettings.email ?? false,
+        telegram: currentUser?.notificationSettings.telegram ?? false
+      })
+    });
+    setCurrentUser(settings.user);
+    const data = await jsonFetch('/api/subscription', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ lat, lng, radius }) });
+    setGeoSub(data.subscription);
   };
+  const handleDeleteSubscription = async () => { await jsonFetch('/api/subscription', { method: 'DELETE' }); setGeoSub(null); };
+  const handleUpdateNotificationSettings = async (push: boolean, email: boolean, telegram: boolean) => { if (push) await enablePush(); const data = await jsonFetch('/api/user/settings', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ push, email, telegram }) }); setCurrentUser(data.user); if (!push) setGeoSub(null); };
   const handleReportModerationIssue = (ad: any, requestId?: string) => {
     const metadata = [
       'Здравствуйте! Объявление отклонено, нужна помощь с проверкой.',
@@ -136,7 +139,7 @@ export default function App() {
 
   return <div className="app-shell min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col font-sans pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]">
     <BottomNav activeScreen={activeScreen} onNavigate={setActiveScreen} onCreateAdClick={handleCreateClick} currentUser={currentUser} onOpenAuth={() => setShowAuthModal(true)} />
-    <main className="flex-1 pb-20">{activeScreen === 'map' ? <MapView ads={ads} onSelectAd={handleSelectAd} onViewportChange={fetchAds} geoSubscription={geoSub} onSaveSubscription={handleSaveSubscription} onDeleteSubscription={handleDeleteSubscription} isLoggedIn={Boolean(currentUser)} onOpenAuth={() => setShowAuthModal(true)} pushEnabled={currentUser?.notificationSettings.push ?? false} /> : currentUser ? <ProfileView user={currentUser} onLogout={handleLogout} onDeleteAccount={handleDeleteAccount} onChangePassword={handleChangePassword} userAds={userAds} userAdsLoading={userAdsLoading} onUnpublishAd={handleUnpublishAd} onRepublishAd={handleRepublishAd} onPrefillCreateAd={ad => { setPrefillAdData(ad); setShowCreateWizard(true); }} onUpdateNotificationSettings={handleUpdateNotificationSettings} onCreateTelegramLink={handleCreateTelegramLink} onOpenDeveloperContact={() => { window.location.href = `mailto:${supportEmail}`; }} masterUsersList={masterUsers} onMasterBlockUser={handleMasterBlockUser} onMasterUnblockUser={handleMasterUnblockUser} systemLogs={systemLogs} /> : <div className="p-8 text-center"><button onClick={() => setShowAuthModal(true)} className="bg-[#008E3A] text-white font-semibold px-6 py-3 rounded-xl shadow cursor-pointer">Войти в профиль</button></div>}</main>
+    <main className="flex-1 pb-20">{activeScreen === 'map' ? <MapView ads={ads} onSelectAd={handleSelectAd} onViewportChange={fetchAds} geoSubscription={geoSub} onSaveSubscription={handleSaveSubscription} onDeleteSubscription={handleDeleteSubscription} isLoggedIn={Boolean(currentUser)} onOpenAuth={() => setShowAuthModal(true)} /> : currentUser ? <ProfileView user={currentUser} onLogout={handleLogout} onDeleteAccount={handleDeleteAccount} onChangePassword={handleChangePassword} userAds={userAds} userAdsLoading={userAdsLoading} onUnpublishAd={handleUnpublishAd} onRepublishAd={handleRepublishAd} onPrefillCreateAd={ad => { setPrefillAdData(ad); setShowCreateWizard(true); }} onUpdateNotificationSettings={handleUpdateNotificationSettings} onOpenDeveloperContact={() => { window.location.href = `mailto:${supportEmail}`; }} masterUsersList={masterUsers} onMasterBlockUser={handleMasterBlockUser} onMasterUnblockUser={handleMasterUnblockUser} systemLogs={systemLogs} /> : <div className="p-8 text-center"><button onClick={() => setShowAuthModal(true)} className="bg-[#008E3A] text-white font-semibold px-6 py-3 rounded-xl shadow cursor-pointer">Войти в профиль</button></div>}</main>
     {selectedAd ? <AdDetailsModal ad={selectedAd} onClose={() => setSelectedAd(null)} currentUser={currentUser} onOpenAuth={() => setShowAuthModal(true)} onRequestPhone={handleRequestPhone} onSubmitComplaint={handleSubmitComplaint} /> : null}
     {showCreateWizard ? <CreateAdWizard onClose={() => setShowCreateWizard(false)} onSubmit={handleCreateAdSubmit} onReportIssue={handleReportModerationIssue} prefillData={prefillAdData} /> : null}
     {showAuthModal ? <AuthModal onClose={() => setShowAuthModal(false)} onLoginSuccess={user => { setCurrentUser(user); setShowAuthModal(false); }} onLoginApi={handleLoginApi} onRegisterApi={handleRegisterApi} onRecoveryApi={handleRecoveryApi} onYandexApi={handleYandexApi} /> : null}

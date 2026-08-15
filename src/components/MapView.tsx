@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import L from 'leaflet';
-import { Locate, Bell, Check, Trash2, MapPin, ChevronRight, Settings, X } from 'lucide-react';
+import { Locate, Bell, Check, Trash2, MapPin, ChevronRight, Settings, X, Loader2 } from 'lucide-react';
 import { PublicAdItem, GeoSubscription } from '../types';
 import { cartoTileUrl, useSystemDarkMode } from '../theme';
 import { getCurrentLocation, isGeolocationPermissionDenied } from '../geolocation';
@@ -10,12 +10,16 @@ interface MapViewProps {
   onSelectAd: (ad: PublicAdItem) => void;
   onViewportChange?: (minLat: number, maxLat: number, minLng: number, maxLng: number) => void;
   geoSubscription: GeoSubscription | null;
-  onSaveSubscription: (lat: number, lng: number, radius: number) => void;
+  onSaveSubscription: (lat: number, lng: number, radius: number) => Promise<void>;
   onDeleteSubscription: () => void;
   isLoggedIn: boolean;
   onOpenAuth: () => void;
-  pushEnabled: boolean;
 }
+
+const subscriptionRadii = [500, 1000, 2000, 10000];
+const normalizeSubscriptionRadius = (radius: number | undefined) =>
+  subscriptionRadii.includes(radius || 0) ? radius! : 1000;
+const formatSubscriptionRadius = (radius: number) => radius >= 1000 ? `${radius / 1000}км` : `${radius}м`;
 
 export const MapView: React.FC<MapViewProps> = ({
   ads,
@@ -26,7 +30,6 @@ export const MapView: React.FC<MapViewProps> = ({
   onDeleteSubscription,
   isLoggedIn,
   onOpenAuth,
-  pushEnabled
 }) => {
   const isDarkMode = useSystemDarkMode();
   const initialDarkMode = useRef(isDarkMode);
@@ -43,8 +46,17 @@ export const MapView: React.FC<MapViewProps> = ({
   const [locationLoading, setLocationLoading] = useState(false);
   const [subLat, setSubLat] = useState<number>(geoSubscription?.lat || 55.751244);
   const [subLng, setSubLng] = useState<number>(geoSubscription?.lng || 37.598418);
-  const [subRadius, setSubRadius] = useState<number>(geoSubscription?.radius || 5000);
-  const isPwa = typeof window !== 'undefined' && (window.matchMedia('(display-mode: standalone)').matches || Boolean((navigator as Navigator & { standalone?: boolean }).standalone));
+  const [subRadius, setSubRadius] = useState<number>(() => normalizeSubscriptionRadius(geoSubscription?.radius));
+  const [subscriptionSaved, setSubscriptionSaved] = useState(false);
+  const [subscriptionSaving, setSubscriptionSaving] = useState(false);
+  const [subscriptionSaveError, setSubscriptionSaveError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (isSubMode) return;
+    setSubLat(geoSubscription?.lat || 55.751244);
+    setSubLng(geoSubscription?.lng || 37.598418);
+    setSubRadius(normalizeSubscriptionRadius(geoSubscription?.radius));
+  }, [geoSubscription, isSubMode]);
 
   // Initialize Leaflet Map
   useEffect(() => {
@@ -246,12 +258,23 @@ export const MapView: React.FC<MapViewProps> = ({
       setSubLat(center.lat);
       setSubLng(center.lng);
     }
+    setSubscriptionSaved(false);
+    setSubscriptionSaveError(null);
     setIsSubMode(!isSubMode);
   };
 
-  const handleSaveSub = () => {
-    onSaveSubscription(subLat, subLng, subRadius);
-    setIsSubMode(false);
+  const handleSaveSub = async () => {
+    setSubscriptionSaving(true);
+    setSubscriptionSaveError(null);
+    try {
+      await onSaveSubscription(subLat, subLng, subRadius);
+      setIsSubMode(false);
+      setSubscriptionSaved(true);
+    } catch (error: any) {
+      setSubscriptionSaveError(error.message || 'Не удалось сохранить гео-подписку');
+    } finally {
+      setSubscriptionSaving(false);
+    }
   };
 
   return (
@@ -259,7 +282,30 @@ export const MapView: React.FC<MapViewProps> = ({
       
       {/* SECTION 1: TOP NOTIFICATION SUBSCRIPTION BLOCK */}
       <section className={`liquid-glass border border-white/80 dark:border-white/10 shadow-xl ${isSubMode ? 'p-5 rounded-3xl space-y-3.5' : 'p-3.5 rounded-2xl'}`}>
-        {!isSubMode ? (
+        {subscriptionSaved ? (
+          <div className="space-y-3">
+            <div className="flex items-center space-x-2.5">
+              <div className="w-9 h-9 rounded-2xl bg-[#008E3A]/15 text-[#008E3A] flex items-center justify-center font-semibold">
+                <Check className="w-5 h-5" />
+              </div>
+              <div>
+                <h2 className="text-sm font-bold text-slate-900 dark:text-slate-100 leading-tight">Гео-подписка сохранена</h2>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">Push-уведомления включены в настройках</p>
+              </div>
+            </div>
+            <div className="rounded-2xl border border-blue-200/80 bg-blue-50/80 dark:border-blue-900/60 dark:bg-blue-950/30 p-3 space-y-1.5 text-[11px] leading-relaxed text-blue-900 dark:text-blue-100">
+              <p className="font-bold">Пуши работают только в установленном PWA</p>
+              <p>На iPhone или iPad откройте LostHvost в Safari, нажмите «Поделиться» → «На экран Домой», затем запускайте сайт с иконки и разрешите уведомления.</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setSubscriptionSaved(false)}
+              className="w-full bg-[#008E3A] hover:bg-[#007A32] text-white font-semibold py-2.5 rounded-2xl text-xs transition cursor-pointer"
+            >
+              Вернуться к карте
+            </button>
+          </div>
+        ) : !isSubMode ? (
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-xl bg-[#008E3A]/15 text-[#008E3A] flex items-center justify-center flex-shrink-0">
               <Bell className="w-4 h-4" />
@@ -267,9 +313,7 @@ export const MapView: React.FC<MapViewProps> = ({
             <div className="min-w-0 flex-1">
               <h2 className="text-sm font-bold text-slate-900 dark:text-slate-100 leading-tight">Гео-подписка</h2>
               <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-snug whitespace-normal break-words">
-                {geoSubscription?.isActive
-                  ? `Уведомления в радиусе ${geoSubscription.radius >= 1000 ? `${geoSubscription.radius / 1000} км` : `${geoSubscription.radius} м`}`
-                  : 'Настройте уведомления о животных поблизости'}
+                Выберите область на карте и получите уведомление как только появится новое объявление
               </p>
             </div>
             <button
@@ -305,13 +349,13 @@ export const MapView: React.FC<MapViewProps> = ({
             <div className="flex items-center justify-between text-xs font-semibold text-slate-700 dark:text-slate-200">
               <div className="flex items-center space-x-1.5 text-[#008E3A]">
                 <MapPin className="w-4 h-4" />
-                <span>Радиус зоны: <strong className="text-[#008E3A]">{subRadius >= 1000 ? `${subRadius / 1000} км` : `${subRadius} м`}</strong></span>
+                <span>Радиус зоны: <strong className="text-[#008E3A]">{formatSubscriptionRadius(subRadius)}</strong></span>
               </div>
               <span className="text-[11px] text-slate-400 text-right">Перетащите маркер на карте ниже</span>
             </div>
 
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
-              {[1000, 2000, 5000, 10000].map(r => (
+              {subscriptionRadii.map(r => (
                 <button
                   key={r}
                   type="button"
@@ -322,25 +366,21 @@ export const MapView: React.FC<MapViewProps> = ({
                       : 'border-white/60 bg-white/60 dark:bg-slate-800/60 text-slate-700 dark:text-slate-300 hover:bg-white'
                   }`}
                 >
-                  {r >= 1000 ? `${r / 1000} км` : `${r} м`}
+                  {formatSubscriptionRadius(r)}
                 </button>
               ))}
             </div>
 
-            <div className="rounded-2xl border border-blue-200/80 bg-blue-50/80 dark:border-blue-900/60 dark:bg-blue-950/30 p-3 space-y-1.5 text-[11px] leading-relaxed text-blue-900 dark:text-blue-100">
-              <p className="font-bold">Пуши работают только в установленном PWA</p>
-              <p>На iPhone или iPad откройте LostHvost в Safari, нажмите «Поделиться» → «На экран Домой», затем запускайте сайт с иконки и разрешите уведомления.</p>
-              {!isPwa && <p className="font-semibold text-blue-700 dark:text-blue-300">Сейчас сайт открыт в обычной вкладке. Подписку можно настроить, но уведомления появятся после запуска PWA.</p>}
-              {!pushEnabled && <p className="font-semibold text-amber-700 dark:text-amber-300">В профиле отключены push-уведомления. Включите их после установки PWA.</p>}
-            </div>
+            {subscriptionSaveError && <p className="text-xs font-semibold text-rose-600 dark:text-rose-400">{subscriptionSaveError}</p>}
 
             <div className="flex space-x-2 pt-1">
               <button
                 onClick={handleSaveSub}
+                disabled={subscriptionSaving}
                 className="flex-1 bg-[#008E3A] hover:bg-[#007A32] text-white font-semibold py-2.5 rounded-2xl text-xs flex items-center justify-center space-x-1.5 shadow-md transition cursor-pointer"
               >
-                <Check className="w-4 h-4" />
-                <span>Сохранить подписку ({subRadius >= 1000 ? `${subRadius / 1000} км` : `${subRadius} м`})</span>
+                {subscriptionSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+                <span>{subscriptionSaving ? 'Сохраняем…' : `Сохранить подписку (${formatSubscriptionRadius(subRadius)})`}</span>
               </button>
               <button
                 onClick={() => setIsSubMode(false)}
@@ -373,7 +413,7 @@ export const MapView: React.FC<MapViewProps> = ({
         </div>
 
         {/* Floating Controls Overlay (Top-Right) */}
-        <div className="absolute top-3.5 right-3.5 z-[1000] flex flex-col space-y-2">
+        <div className="absolute bottom-20 right-3.5 z-[1000] flex flex-col space-y-2">
           <button
             type="button"
             onClick={handleGetLocation}
