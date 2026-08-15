@@ -17,6 +17,7 @@ declare global {
           sitekey: string;
           callback: (token: string) => void;
           hl?: 'ru' | 'en' | 'be' | 'kk' | 'tt' | 'uk' | 'uz' | 'tr';
+          theme?: 'light' | 'dark';
           shieldPosition?: 'top-left' | 'center-left' | 'bottom-left' | 'top-right' | 'center-right' | 'bottom-right';
         }
       ) => string;
@@ -87,6 +88,7 @@ export const CaptchaWidget: React.FC<CaptchaWidgetProps> = ({
       const widgetId = window.smartCaptcha.render(containerRef.current, {
         sitekey: siteKey,
         hl: 'ru',
+        theme: isDarkMode ? 'dark' : 'light',
         callback: (token: string) => {
           if (token) {
             setRenderError(false);

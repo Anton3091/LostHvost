@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import L from 'leaflet';
-import { ArrowLeft, ArrowRight, Upload, Trash2, MapPin, Sparkles, CheckCircle2, AlertCircle, Phone } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Upload, Trash2, Locate, Sparkles, CheckCircle2, AlertCircle, Phone, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { AdType, AdCategory } from '../types';
 import { CaptchaWidget } from './CaptchaWidget';
@@ -157,6 +157,8 @@ export const CreateAdWizard: React.FC<CreateAdWizardProps> = ({
         zoomControl: false
       });
 
+      map.attributionControl.setPrefix(false);
+
       pickerTileLayer.current = L.tileLayer(cartoPickerTileUrl(isDarkMode), {
         maxZoom: 19
       }).addTo(map);
@@ -290,9 +292,10 @@ export const CreateAdWizard: React.FC<CreateAdWizardProps> = ({
           </div>
           <button
             onClick={onClose}
-            className="w-8 h-8 rounded-full bg-slate-200/60 dark:bg-slate-800/60 text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 flex items-center justify-center transition text-xs font-semibold cursor-pointer"
+            aria-label="Закрыть"
+            className="w-10 h-10 rounded-full bg-slate-200/60 dark:bg-slate-800/60 text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 flex items-center justify-center transition cursor-pointer"
           >
-            ✕
+            <X className="w-5 h-5 stroke-[2.5]" />
           </button>
         </div>
 
@@ -493,18 +496,18 @@ export const CreateAdWizard: React.FC<CreateAdWizardProps> = ({
                 Кликните по карте или перетащите маркер в точку пропажи / обнаружения.
               </p>
 
-              <button
-                type="button"
-                onClick={handleGetLocation}
-                disabled={locationLoading}
-                className="w-full flex items-center justify-center space-x-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 py-2.5 rounded-xl transition text-xs font-semibold cursor-pointer disabled:opacity-60 disabled:cursor-wait"
-              >
-                <MapPin className={`w-4 h-4 ${locationLoading ? 'animate-pulse' : ''}`} />
-                <span>{locationLoading ? 'Определяем местоположение…' : 'Использовать моё текущее местоположение'}</span>
-              </button>
-
               <div className="relative w-full h-56 rounded-xl overflow-hidden border border-slate-200 dark:border-slate-800">
                 <div ref={pickerMapRef} className="w-full h-full" />
+                <button
+                  type="button"
+                  onClick={handleGetLocation}
+                  disabled={locationLoading}
+                  title={locationLoading ? 'Определяем местоположение' : 'Моё местоположение'}
+                  aria-label={locationLoading ? 'Определяем местоположение' : 'Моё местоположение'}
+                  className="absolute bottom-20 right-2 z-[1000] w-9 h-9 liquid-glass text-slate-800 dark:text-slate-100 rounded-full flex items-center justify-center shadow-md cursor-pointer disabled:opacity-60 disabled:cursor-wait"
+                >
+                  <Locate className={`w-4 h-4 text-[#008E3A] ${locationLoading ? 'animate-pulse' : ''}`} />
+                </button>
               </div>
 
               <div className="text-[11px] text-slate-500 bg-slate-50 dark:bg-slate-800 p-2 rounded-lg">
