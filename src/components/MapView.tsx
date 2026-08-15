@@ -4,6 +4,7 @@ import { Locate, Bell, Check, Trash2, MapPin, ChevronRight, Settings, X, Loader2
 import { PublicAdItem, GeoSubscription } from '../types';
 import { cartoTileUrl, useSystemDarkMode } from '../theme';
 import { getCurrentLocation, isGeolocationPermissionDenied } from '../geolocation';
+import { adSeoPath } from '../../seo';
 
 interface MapViewProps {
   ads: PublicAdItem[];
@@ -462,10 +463,11 @@ export const MapView: React.FC<MapViewProps> = ({
             {ads.map(ad => {
               const isLost = ad.type === 'lost';
               return (
-                <div
+                <a
                   key={ad.id}
-                  onClick={() => onSelectAd(ad)}
-                  className="liquid-glass-card p-3.5 rounded-3xl flex items-center space-x-3.5 border border-white/70 dark:border-white/10 active:scale-[0.97] active:bg-slate-200/50 dark:active:bg-slate-800/50 transition-all duration-200 cursor-pointer shadow-sm group"
+                  href={adSeoPath(ad)}
+                  onClick={event => { event.preventDefault(); onSelectAd(ad); }}
+                  className="liquid-glass-card p-3.5 rounded-3xl flex items-center space-x-3.5 border border-white/70 dark:border-white/10 active:scale-[0.97] active:bg-slate-200/50 dark:active:bg-slate-800/50 transition-all duration-200 cursor-pointer shadow-sm group no-underline"
                 >
                   {/* Thumbnail photo */}
                   <div className="relative w-20 h-20 rounded-2xl overflow-hidden bg-slate-100 dark:bg-slate-800 flex-shrink-0 shadow-sm border border-black/5 dark:border-white/5">
@@ -512,7 +514,7 @@ export const MapView: React.FC<MapViewProps> = ({
                   <div className="w-7 h-7 rounded-full bg-slate-100/80 dark:bg-slate-800/80 text-slate-400 group-hover:text-[#008E3A] group-hover:bg-[#008E3A]/10 flex items-center justify-center transition flex-shrink-0">
                     <ChevronRight className="w-4 h-4" />
                   </div>
-                </div>
+                </a>
               );
             })}
           </div>

@@ -39,6 +39,8 @@ export default function App() {
   useEffect(() => {
     jsonFetch('/api/auth/me').then(data => setCurrentUser(data.user)).finally(() => setAuthReady(true));
     const params = new URLSearchParams(location.search);
+    const adId = params.get('ad');
+    if (adId) jsonFetch(`/api/ads/${encodeURIComponent(adId)}`).then(data => setSelectedAd(data.ad)).catch(() => undefined);
     const resetToken = params.get('reset');
     if (resetToken) {
       const password = window.prompt('Введите новый пароль (минимум 10 символов)');
