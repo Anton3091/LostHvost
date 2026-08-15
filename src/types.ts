@@ -68,7 +68,7 @@ export interface GeoSubscription {
   userId: string;
   lat: number;
   lng: number;
-  radius: number; // 1000, 2000, 5000, 10000 meters
+  radius: number; // 500, 1000, 2000, 10000 meters
   isActive: boolean;
   createdAt: string;
 }

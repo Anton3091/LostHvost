@@ -17,8 +17,7 @@ import {
   Activity,
   ChevronRight,
   Mail,
-  Loader2,
-  Send
+  Loader2
 } from 'lucide-react';
 import { User, AdItem, SystemLog } from '../types';
 
@@ -32,7 +31,6 @@ interface ProfileViewProps {
   onRepublishAd: (adId: string) => Promise<void>;
   onPrefillCreateAd: (ad: AdItem) => void;
   onUpdateNotificationSettings: (push: boolean, email: boolean, telegram: boolean) => Promise<void>;
-  onCreateTelegramLink: () => Promise<void>;
   onOpenDeveloperContact: () => void;
   onChangePassword: (currentPassword: string, newPassword: string) => Promise<void>;
   // Master methods
@@ -52,7 +50,6 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
   onRepublishAd,
   onPrefillCreateAd,
   onUpdateNotificationSettings,
-  onCreateTelegramLink,
   onOpenDeveloperContact,
   onChangePassword,
   masterUsersList = [],
@@ -62,13 +59,10 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
 }) => {
   const [activeTab, setActiveTab] = useState<'ads' | 'master' | 'logs'>('ads');
 
-  // Push & Email Settings state
+  // Push settings state
   const [pushEnabled, setPushEnabled] = useState(user.notificationSettings?.push ?? false);
-  const [emailEnabled, setEmailEnabled] = useState(user.notificationSettings?.email ?? false);
-  const [telegramEnabled, setTelegramEnabled] = useState(user.notificationSettings?.telegram ?? false);
   const [settingsSaved, setSettingsSaved] = useState(false);
-  const [telegramLinkLoading, setTelegramLinkLoading] = useState(false);
-  const [telegramLinkError, setTelegramLinkError] = useState<string | null>(null);
+  const [republishingAdId, setRepublishingAdId] = useState<string | null>(null);
 
   // Account Deletion Modal
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -85,8 +79,6 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
 
   useEffect(() => {
     setPushEnabled(user.notificationSettings?.push ?? false);
-    setEmailEnabled(user.notificationSettings?.email ?? false);
-    setTelegramEnabled(user.notificationSettings?.telegram ?? false);
   }, [user]);
 
   // Combine and sort ads: active first, then unpublished
@@ -96,20 +88,17 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
     return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
   });
 
-  const handleSaveSettings = async (push: boolean, email: boolean, telegram: boolean) => {
-    await onUpdateNotificationSettings(push, email, telegram);
+  const handleSaveSettings = async (push: boolean) => {
+    await onUpdateNotificationSettings(push, user.notificationSettings?.email ?? false, user.notificationSettings?.telegram ?? false);
     setSettingsSaved(true);
     setTimeout(() => setSettingsSaved(false), 2000);
   };
-  const handleTelegramConnect = async () => {
-    setTelegramLinkLoading(true);
-    setTelegramLinkError(null);
+  const handleRepublish = async (adId: string) => {
+    setRepublishingAdId(adId);
     try {
-      await onCreateTelegramLink();
-    } catch (error: any) {
-      setTelegramLinkError(error.message || 'Не удалось открыть Telegram');
+      await onRepublishAd(adId);
     } finally {
-      setTelegramLinkLoading(false);
+      setRepublishingAdId(null);
     }
   };
 
@@ -185,37 +174,8 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
           <input
             type="checkbox"
             checked={pushEnabled}
-            onChange={e => { const value = e.target.checked; setPushEnabled(value); handleSaveSettings(value, emailEnabled, telegramEnabled); }}
+            onChange={e => { const value = e.target.checked; setPushEnabled(value); handleSaveSettings(value); }}
             className="w-5 h-5 rounded text-[#008E3A] focus:ring-[#008E3A] cursor-pointer"
-          />
-        </div>
-        
-        <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
-          <div className="flex flex-col">
-            <span className="font-semibold text-slate-800 dark:text-slate-200">Email-уведомления</span>
-            <span className="text-[11px] text-slate-500">Важные оповещения на почту</span>
-          </div>
-          <input
-            type="checkbox"
-            checked={emailEnabled}
-            onChange={e => { const value = e.target.checked; setEmailEnabled(value); handleSaveSettings(pushEnabled, value, telegramEnabled); }}
-            className="w-5 h-5 rounded text-[#008E3A] focus:ring-[#008E3A] cursor-pointer"
-          />
-        </div>
-
-        <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between gap-3">
-          <div className="flex flex-col min-w-0">
-            <span className="font-semibold text-slate-800 dark:text-slate-200 flex items-center gap-2"><Send className="w-4 h-4 text-sky-500" />Telegram-уведомления</span>
-            <span className="text-[11px] text-slate-500">Сообщения о событиях объявления и геоподписке</span>
-            {!user.telegramConnected && <button type="button" onClick={handleTelegramConnect} disabled={telegramLinkLoading} className="mt-2 w-fit text-[11px] font-semibold text-sky-600 dark:text-sky-400 cursor-pointer disabled:opacity-50">{telegramLinkLoading ? 'Открываем Telegram…' : 'Подключить Telegram'}</button>}
-            {telegramLinkError && <span className="text-[11px] text-rose-600 dark:text-rose-400">{telegramLinkError}</span>}
-          </div>
-          <input
-            type="checkbox"
-            checked={telegramEnabled}
-            disabled={!user.telegramConnected}
-            onChange={e => { const value = e.target.checked; setTelegramEnabled(value); handleSaveSettings(pushEnabled, emailEnabled, value); }}
-            className="w-5 h-5 rounded text-[#008E3A] focus:ring-[#008E3A] cursor-pointer disabled:opacity-40"
           />
         </div>
 
@@ -226,10 +186,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
         >
           <span className="flex items-center space-x-3">
             <Key className="w-4 h-4 text-slate-400" />
-            <span className="flex flex-col">
-              <span className="font-semibold text-slate-800 dark:text-slate-200">Смена пароля</span>
-              <span className="text-[11px] text-slate-500">Безопасность аккаунта</span>
-            </span>
+            <span className="font-semibold text-slate-800 dark:text-slate-200">Смена пароля</span>
           </span>
           <ChevronRight className="w-4 h-4 text-slate-400" />
         </button>
@@ -241,10 +198,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
         >
           <span className="flex items-center space-x-3">
             <Mail className="w-4 h-4 text-slate-400" />
-            <span className="flex flex-col">
-              <span className="font-semibold text-slate-800 dark:text-slate-200">Связаться с разработчиком</span>
-              <span className="text-[11px] text-slate-500">Открыть письмо с почтового приложения</span>
-            </span>
+            <span className="font-semibold text-slate-800 dark:text-slate-200">Связаться с разработчиком</span>
           </span>
           <ChevronRight className="w-4 h-4 text-slate-400" />
         </button>
@@ -365,11 +319,12 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                       </button>
                     ) : ad.status === 'unpublished' ? (
                       <button
-                        onClick={() => onRepublishAd(ad.id)}
-                        className="w-full sm:w-auto bg-slate-100 hover:bg-slate-200 text-slate-700 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-300 font-semibold px-5 py-3 rounded-2xl text-xs transition cursor-pointer flex items-center justify-center space-x-1.5"
+                        onClick={() => handleRepublish(ad.id)}
+                        disabled={republishingAdId === ad.id}
+                        className="w-full sm:w-auto bg-slate-100 hover:bg-slate-200 text-slate-700 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-300 font-semibold px-5 py-3 rounded-2xl text-xs transition cursor-pointer flex items-center justify-center space-x-1.5 disabled:opacity-60 disabled:cursor-wait"
                       >
-                        <Repeat className="w-4 h-4" />
-                        <span>Опубликовать заново</span>
+                        {republishingAdId === ad.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Repeat className="w-4 h-4" />}
+                        <span>{republishingAdId === ad.id ? 'Публикуем…' : 'Опубликовать заново'}</span>
                       </button>
                     ) : ad.status === 'rejected' ? (
                       <button
