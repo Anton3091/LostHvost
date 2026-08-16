@@ -25,7 +25,11 @@ test('город определяется в пределах радиуса и 
 test('schema главной страницы содержит канонический адрес и варианты названия', () => {
   const schema = JSON.parse(mainSeoSchema());
   const website = schema['@graph'].find((item: { '@type': string }) => item['@type'] === 'WebSite');
+  const faq = schema['@graph'].find((item: { '@type': string }) => item['@type'] === 'FAQPage');
 
   assert.equal(website.url, 'https://losthvost.ru/main');
   assert.deepEqual(website.alternateName, ['Лостхвост', 'Лост Хвост', 'Lost Hvost']);
+  assert.equal(faq.mainEntity.length, 5);
+  assert.equal(faq.mainEntity[4].name, 'Сколько стоит пользоваться LostHvost?');
+  assert.match(faq.mainEntity[4].acceptedAnswer.text, /бесплатен/);
 });

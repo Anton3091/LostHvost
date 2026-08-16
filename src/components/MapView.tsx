@@ -457,9 +457,9 @@ export const MapView: React.FC<MapViewProps> = ({
             disabled={locationLoading}
             title={locationLoading ? 'Определяем местоположение' : 'Моё местоположение'}
             aria-label={locationLoading ? 'Определяем местоположение' : 'Моё местоположение'}
-            className="w-10 h-10 liquid-glass text-slate-800 rounded-full flex items-center justify-center hover:scale-105 active:scale-95 transition shadow-md cursor-pointer disabled:opacity-60 disabled:cursor-wait"
+            className="w-12 h-12 bg-[#087747] border-2 border-white/90 text-white rounded-full flex items-center justify-center hover:bg-[#06683D] hover:scale-105 active:scale-95 transition shadow-[0_8px_20px_rgba(8,119,71,0.42)] cursor-pointer disabled:opacity-60 disabled:cursor-wait"
           >
-            <Locate className={`w-4 h-4 text-[#0C8C50] ${locationLoading ? 'animate-pulse' : ''}`} />
+            <Locate className={`w-5 h-5 text-white ${locationLoading ? 'animate-pulse' : ''}`} />
           </button>
         </div>
       </section>
