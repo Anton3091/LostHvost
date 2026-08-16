@@ -29,6 +29,7 @@ export const AdDetailsModal: React.FC<AdDetailsModalProps> = ({
   const [showPhoneCaptcha, setShowPhoneCaptcha] = useState(false);
   const [phoneCaptchaToken, setPhoneCaptchaToken] = useState('');
   const [phoneError, setPhoneError] = useState<string | null>(null);
+  const [shareMessage, setShareMessage] = useState<string | null>(null);
 
   // Complaint states
   const [showComplaintModal, setShowComplaintModal] = useState(false);
@@ -39,6 +40,35 @@ export const AdDetailsModal: React.FC<AdDetailsModalProps> = ({
   const [complaintError, setComplaintError] = useState<string | null>(null);
 
   const isLost = ad.type === 'lost';
+
+  const handleShare = async () => {
+    const shareUrl = `${window.location.origin}/?ad=${encodeURIComponent(ad.id)}`;
+    const shareData = {
+      title: ad.petName || (isLost ? 'Потерялся питомец' : 'Найден питомец'),
+      text: `Объявление LostHvost: ${ad.petName || 'питомец'}`,
+      url: shareUrl,
+    };
+
+    try {
+      if (navigator.share) {
+        await navigator.share(shareData);
+        setShareMessage('Ссылка готова к отправке');
+      } else {
+        await navigator.clipboard.writeText(shareUrl);
+        setShareMessage('Ссылка скопирована');
+      }
+    } catch (error) {
+      if (error instanceof DOMException && error.name === 'AbortError') return;
+      try {
+        await navigator.clipboard.writeText(shareUrl);
+        setShareMessage('Ссылка скопирована');
+      } catch {
+        setShareMessage('Не удалось скопировать ссылку');
+      }
+    }
+
+    window.setTimeout(() => setShareMessage(null), 2500);
+  };
 
   // Request Phone Handler
   const handleStartPhoneRequest = () => {
@@ -128,13 +158,32 @@ export const AdDetailsModal: React.FC<AdDetailsModalProps> = ({
               </span>
             </div>
 
-            <button
-              onClick={onClose}
-              className="w-8 h-8 rounded-full bg-slate-200/60 dark:bg-slate-800/60 text-slate-600 dark:text-slate-300 hover:bg-slate-300/80 dark:hover:bg-slate-700/80 flex items-center justify-center transition active:scale-90 cursor-pointer"
-            >
-              <X className="w-4 h-4" />
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={handleShare}
+                aria-label="Поделиться объявлением"
+                title="Поделиться объявлением"
+                className="w-8 h-8 rounded-full bg-slate-200/60 dark:bg-slate-800/60 text-slate-600 dark:text-slate-300 hover:bg-slate-300/80 dark:hover:bg-slate-700/80 flex items-center justify-center transition active:scale-90 cursor-pointer"
+              >
+                <Share2 className="w-4 h-4" />
+              </button>
+              <button
+                type="button"
+                onClick={onClose}
+                aria-label="Закрыть объявление"
+                className="w-8 h-8 rounded-full bg-slate-200/60 dark:bg-slate-800/60 text-slate-600 dark:text-slate-300 hover:bg-slate-300/80 dark:hover:bg-slate-700/80 flex items-center justify-center transition active:scale-90 cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
           </div>
+
+          {shareMessage && (
+            <div role="status" className="absolute top-[4.75rem] left-1/2 z-20 -translate-x-1/2 rounded-full bg-slate-900/90 px-4 py-2 text-xs font-medium text-white shadow-lg">
+              {shareMessage}
+            </div>
+          )}
 
           {/* Sheet Scrollable Content */}
           <div className="overflow-y-auto px-6 py-5 space-y-5">

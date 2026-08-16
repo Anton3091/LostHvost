@@ -78,7 +78,12 @@ export default function App() {
   const handleSubmitComplaint = async (adId: string, reason: string, captchaToken: string) => { await jsonFetch(`/api/ads/${adId}/complaint`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ captchaToken, reason }) }); fetchAds(); };
   const handleCreateAdSubmit = async (adData: any) => { const data = await jsonFetch('/api/ads', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(adData) }); fetchAds(); fetchUserData(); return { status: data.status, ad: data.ad }; };
   const handleUnpublishAd = async (adId: string) => { await jsonFetch(`/api/ads/${adId}/unpublish`, { method: 'POST' }); fetchAds(); fetchUserData(); };
-  const handleSelectAd = async (ad: PublicAdItem) => { try { const data = await jsonFetch(`/api/ads/${ad.id}`); setSelectedAd(data.ad); } catch (error: any) { alert(error.message); } };
+  const handleSelectAd = useCallback(async (ad: PublicAdItem) => { try { const data = await jsonFetch(`/api/ads/${ad.id}`); setSelectedAd(data.ad); } catch (error: any) { alert(error.message); } }, []);
+  useEffect(() => {
+    const sharedAdId = new URLSearchParams(location.search).get('ad');
+    if (!sharedAdId) return;
+    handleSelectAd({ id: sharedAdId } as PublicAdItem);
+  }, [handleSelectAd]);
   const handleSaveSubscription = async (lat: number, lng: number, radius: number) => { const data = await jsonFetch('/api/subscription', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ lat, lng, radius }) }); setGeoSub(data.subscription); };
   const handleDeleteSubscription = async () => { await jsonFetch('/api/subscription', { method: 'DELETE' }); setGeoSub(null); };
 
