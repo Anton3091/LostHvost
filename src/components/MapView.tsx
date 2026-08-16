@@ -65,10 +65,10 @@ export const MapView: React.FC<MapViewProps> = ({
     const initialLat = geoSubscription?.lat || 55.751244;
     const initialLng = geoSubscription?.lng || 37.598418;
 
-    // Zoom level 11 scales to approximately a 10 km radius view
+    // Zoom level 9 gives a wider area view when the map opens
     const map = L.map(mapRef.current, {
       center: [initialLat, initialLng],
-      zoom: 11,
+      zoom: 9,
       zoomControl: false
     });
 

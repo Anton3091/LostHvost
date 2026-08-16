@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, Phone, AlertCircle, Calendar, MapPin, Tag, UserCheck, ShieldAlert, Check, Share2, ChevronLeft, ChevronRight } from 'lucide-react';
+import { X, Phone, AlertCircle, Calendar, MapPin, Tag, ShieldAlert, Check, Share2, ChevronLeft, ChevronRight } from 'lucide-react';
 import { PublicAdItem, User } from '../types';
 import { CaptchaWidget } from './CaptchaWidget';
 
@@ -198,10 +198,6 @@ export const AdDetailsModal: React.FC<AdDetailsModalProps> = ({
                   <Calendar className="w-3.5 h-3.5 text-slate-400" />
                   <span>Опубликовано: {new Date(ad.createdAt).toLocaleString('ru-RU')}</span>
                 </div>
-                <div className="flex items-center space-x-1.5">
-                  <UserCheck className="w-3.5 h-3.5 text-slate-400" />
-                  <span>Автор: {ad.contactName}</span>
-                </div>
               </div>
             </div>
 
@@ -226,6 +222,24 @@ export const AdDetailsModal: React.FC<AdDetailsModalProps> = ({
                   {ad.lat.toFixed(6)}, {ad.lng.toFixed(6)}
                 </div>
               </div>
+              <div className="grid grid-cols-2 gap-2">
+                <a
+                  href={`https://yandex.ru/maps/?ll=${encodeURIComponent(`${ad.lng},${ad.lat}`)}&z=16&pt=${encodeURIComponent(`${ad.lng},${ad.lat},pm2rdm`)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="min-h-10 rounded-xl bg-[#ffcc00]/20 px-2 py-2 text-center text-[11px] font-semibold text-slate-800 transition hover:bg-[#ffcc00]/35 active:scale-[0.98]"
+                >
+                  Яндекс Карты
+                </a>
+                <a
+                  href={`https://2gis.ru/geo/${ad.lng},${ad.lat}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="min-h-10 rounded-xl bg-[#e8f7ef] px-2 py-2 text-center text-[11px] font-semibold text-[#087747] transition hover:bg-[#d5f0e1] active:scale-[0.98]"
+                >
+                  2ГИС
+                </a>
+              </div>
             </div>
 
             {/* Phone Request / Call Action Pill */}
@@ -233,7 +247,7 @@ export const AdDetailsModal: React.FC<AdDetailsModalProps> = ({
               {phone ? (
                 <div className="liquid-glass-card border border-emerald-500/30 p-4 rounded-3xl text-center space-y-3">
                   <p className="text-xs text-emerald-700 font-semibold">
-                    Номер телефона контактера:
+                    {ad.contactName}
                   </p>
                   <div className="text-2.5xl font-bold tracking-wider text-slate-900 font-mono">
                     {phone}
@@ -243,7 +257,7 @@ export const AdDetailsModal: React.FC<AdDetailsModalProps> = ({
                     className="w-full bg-[#34C759] hover:bg-emerald-600 text-white font-semibold py-3 px-4 rounded-2xl shadow-lg shadow-emerald-500/20 transition flex items-center justify-center space-x-2 text-sm"
                   >
                     <Phone className="w-4 h-4 fill-current" />
-                    <span>Позвонить прямо сейчас</span>
+                    <span>Позвонить</span>
                   </a>
                 </div>
               ) : (
