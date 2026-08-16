@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { X, Phone, AlertCircle, Calendar, MapPin, Tag, ShieldAlert, Check, Share2, ChevronLeft, ChevronRight } from 'lucide-react';
 import { PublicAdItem, User } from '../types';
 import { CaptchaWidget } from './CaptchaWidget';
+import { getAdLink } from '../adLink';
 
 interface AdDetailsModalProps {
   ad: PublicAdItem | null;
@@ -40,8 +41,21 @@ export const AdDetailsModal: React.FC<AdDetailsModalProps> = ({
 
   const isLost = ad.type === 'lost';
 
+  const handleCopyLink = async () => {
+    const adUrl = getAdLink(window.location.origin, ad.id);
+
+    try {
+      await navigator.clipboard.writeText(adUrl);
+      setShareMessage('Ссылка скопирована');
+    } catch {
+      setShareMessage('Не удалось скопировать ссылку');
+    }
+
+    window.setTimeout(() => setShareMessage(null), 2500);
+  };
+
   const handleShare = async () => {
-    const shareUrl = `${window.location.origin}/?ad=${encodeURIComponent(ad.id)}`;
+    const shareUrl = getAdLink(window.location.origin, ad.id);
     const shareData = {
       title: ad.petName || (isLost ? 'Потерялся питомец' : 'Найден питомец'),
       text: `Объявление LostHvost: ${ad.petName || 'питомец'}`,
@@ -297,6 +311,14 @@ export const AdDetailsModal: React.FC<AdDetailsModalProps> = ({
 
             {/* Phone Request / Call Action Pill */}
             <div className="pt-2">
+              <button
+                type="button"
+                onClick={handleCopyLink}
+                className="mb-3 w-full rounded-2xl border border-[#0C8C50] bg-slate-100/80 px-5 py-3.5 text-sm font-semibold text-[#087747] transition hover:bg-slate-200/80 active:scale-[0.99] cursor-pointer"
+              >
+                Скопировать ссылку
+              </button>
+
               {phone ? (
                 <div className="liquid-glass-card border border-emerald-500/30 p-4 rounded-3xl text-center space-y-3">
                   <p className="text-xs text-emerald-700 font-semibold">
