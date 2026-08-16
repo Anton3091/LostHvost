@@ -65,6 +65,32 @@ export function adSeoPath(ad: SeoAd) {
   return `/obyavleniya/${encodeURIComponent(ad.id)}/${slugify(`${adSeoAction(ad.type)} ${adSeoSubject(ad)} ${city}`)}`;
 }
 
+export function mainSeoSchema() {
+  return JSON.stringify({
+    '@context': 'https://schema.org',
+    '@graph': [
+      {
+        '@type': 'WebSite',
+        '@id': 'https://losthvost.ru/main#website',
+        url: 'https://losthvost.ru/main',
+        name: 'LostHvost',
+        alternateName: ['Лостхвост', 'Лост Хвост', 'Lost Hvost'],
+        description: 'LostHvost — поиск пропавших и найденных домашних животных. Размещайте объявления и находите питомцев на карте.',
+        inLanguage: 'ru-RU',
+      },
+      {
+        '@type': 'WebApplication',
+        '@id': 'https://losthvost.ru/main#application',
+        name: 'LostHvost',
+        url: 'https://losthvost.ru/main',
+        applicationCategory: 'UtilitiesApplication',
+        operatingSystem: 'Web',
+        description: 'Сервис поиска пропавших и найденных домашних животных.',
+      },
+    ],
+  }).replace(/</g, '\\u003c');
+}
+
 function distanceKm(lat1: number, lng1: number, lat2: number, lng2: number) {
   const radians = Math.PI / 180;
   const a = Math.sin((lat2 - lat1) * radians / 2) ** 2 + Math.cos(lat1 * radians) * Math.cos(lat2 * radians) * Math.sin((lng2 - lng1) * radians / 2) ** 2;
