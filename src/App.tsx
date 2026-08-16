@@ -1,8 +1,11 @@
-import React, { useState, useEffect, useCallback, Suspense, lazy } from 'react';
+import React, { useState, useEffect, useCallback, useRef, Suspense, lazy } from 'react';
 import { MapView } from './components/MapView';
 import { BottomNav } from './components/BottomNav';
+import { PullToRefresh } from './components/PullToRefresh';
 import { PublicAdItem, User, GeoSubscription, AdItem, SystemLog } from './types';
 import { supportEmail } from './config';
+import { isStandalonePwa } from './geolocation';
+import { shouldRefreshAds } from './adsRefresh';
 
 const AdDetailsModal = lazy(() => import('./components/AdDetailsModal').then(module => ({ default: module.AdDetailsModal })));
 const CreateAdWizard = lazy(() => import('./components/CreateAdWizard').then(module => ({ default: module.CreateAdWizard })));
@@ -23,6 +26,8 @@ function urlBase64ToUint8Array(value: string) {
 }
 
 export default function App() {
+  const lastAdsViewport = useRef<{ minLat: number; maxLat: number; minLng: number; maxLng: number } | null>(null);
+  const hasLoadedAds = useRef(false);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [authReady, setAuthReady] = useState(false);
   const [activeScreen, setActiveScreen] = useState<'map' | 'profile'>('map');
@@ -37,6 +42,7 @@ export default function App() {
   const [masterUsers, setMasterUsers] = useState<User[]>([]);
   const [systemLogs, setSystemLogs] = useState<SystemLog[]>([]);
   const [networkUnavailable, setNetworkUnavailable] = useState(false);
+  const [adsLoading, setAdsLoading] = useState(true);
 
   useEffect(() => {
     jsonFetch('/api/auth/me').then(data => {
@@ -69,9 +75,19 @@ export default function App() {
     const params = new URLSearchParams();
     if ([minLat, maxLat, minLng, maxLng].every(value => value !== undefined)) {
       params.set('minLat', String(minLat)); params.set('maxLat', String(maxLat)); params.set('minLng', String(minLng)); params.set('maxLng', String(maxLng));
+      lastAdsViewport.current = { minLat: minLat!, maxLat: maxLat!, minLng: minLng!, maxLng: maxLng! };
     }
+    if (!hasLoadedAds.current) setAdsLoading(true);
     try { const data = await jsonFetch(`/api/ads${params.size ? `?${params}` : ''}`); setAds(data.ads || []); setNetworkUnavailable(false); } catch { setNetworkUnavailable(true); }
+    finally { hasLoadedAds.current = true; setAdsLoading(false); }
   }, []);
+
+  const refreshAds = useCallback(() => {
+    const viewport = lastAdsViewport.current;
+    return viewport
+      ? fetchAds(viewport.minLat, viewport.maxLat, viewport.minLng, viewport.maxLng)
+      : fetchAds();
+  }, [fetchAds]);
 
   const fetchUserData = useCallback(async () => {
     if (!currentUser) { setUserAds([]); setGeoSub(null); setUserAdsLoading(false); return; }
@@ -87,7 +103,27 @@ export default function App() {
     finally { setUserAdsLoading(false); }
   }, [currentUser]);
 
-  useEffect(() => { fetchAds(); }, [fetchAds]);
+  useEffect(() => { void refreshAds(); }, [refreshAds]);
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (shouldRefreshAds('visibilitychange', document.visibilityState)) void refreshAds();
+    };
+    const handlePageShow = () => {
+      if (shouldRefreshAds('pageshow')) void refreshAds();
+    };
+    const handleOnline = () => {
+      if (shouldRefreshAds('online')) void refreshAds();
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('pageshow', handlePageShow);
+    window.addEventListener('online', handleOnline);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('pageshow', handlePageShow);
+      window.removeEventListener('online', handleOnline);
+    };
+  }, [refreshAds]);
   useEffect(() => { if (authReady) fetchUserData(); }, [authReady, fetchUserData]);
 
   const handleLoginApi = async (email: string, password: string, captchaToken: string) => (await jsonFetch('/api/auth/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, password, captchaToken }) })).user;
@@ -162,14 +198,16 @@ export default function App() {
   const handleMasterUnblockUser = async (targetUserId: string) => { await jsonFetch('/api/master/unblock', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ targetUserId }) }); fetchUserData(); };
   const handleCreateClick = () => { if (!currentUser) setShowAuthModal(true); else { setPrefillAdData(null); setShowCreateWizard(true); } };
 
-  return <div className="app-shell min-h-screen bg-slate-50 text-slate-900 flex flex-col font-sans pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]">
+  return <PullToRefresh enabled={activeScreen === 'map' && isStandalonePwa()} onRefresh={refreshAds}>
+    <div className="app-shell min-h-screen bg-slate-50 text-slate-900 flex flex-col font-sans pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]">
     <BottomNav activeScreen={activeScreen} onNavigate={setActiveScreen} onCreateAdClick={handleCreateClick} currentUser={currentUser} onOpenAuth={() => setShowAuthModal(true)} />
     {networkUnavailable ? <div className="mx-4 mt-3 rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-900" role="status">Не удалось обновить данные. Сохранённая оболочка приложения остаётся доступной.</div> : null}
-    <main className="flex-1 pb-20"><Suspense fallback={<div className="p-8 text-center text-slate-500">Загрузка…</div>}>{activeScreen === 'map' ? <MapView ads={ads} onSelectAd={handleSelectAd} onViewportChange={fetchAds} geoSubscription={geoSub} onSaveSubscription={handleSaveSubscription} onDeleteSubscription={handleDeleteSubscription} onSendTestNotification={handleSendTestNotification} isLoggedIn={Boolean(currentUser)} onOpenAuth={() => setShowAuthModal(true)} /> : currentUser ? <ProfileView user={currentUser} onLogout={handleLogout} onDeleteAccount={handleDeleteAccount} onChangePassword={handleChangePassword} userAds={userAds} userAdsLoading={userAdsLoading} onUnpublishAd={handleUnpublishAd} onRepublishAd={handleRepublishAd} onPrefillCreateAd={ad => { setPrefillAdData(ad); setShowCreateWizard(true); }} onUpdateNotificationSettings={handleUpdateNotificationSettings} onOpenDeveloperContact={() => { window.location.href = `mailto:${supportEmail}`; }} masterUsersList={masterUsers} onMasterBlockUser={handleMasterBlockUser} onMasterUnblockUser={handleMasterUnblockUser} systemLogs={systemLogs} /> : <div className="p-8 text-center"><button onClick={() => setShowAuthModal(true)} className="bg-[#087747] text-white font-semibold px-6 py-3 rounded-xl shadow cursor-pointer">Войти в профиль</button></div>}</Suspense></main>
+    <main className="flex-1 pb-20"><Suspense fallback={<div className="p-8 text-center text-slate-500">Загрузка…</div>}>{activeScreen === 'map' ? <MapView ads={ads} adsLoading={adsLoading} onSelectAd={handleSelectAd} onViewportChange={fetchAds} geoSubscription={geoSub} onSaveSubscription={handleSaveSubscription} onDeleteSubscription={handleDeleteSubscription} onSendTestNotification={handleSendTestNotification} isLoggedIn={Boolean(currentUser)} onOpenAuth={() => setShowAuthModal(true)} /> : currentUser ? <ProfileView user={currentUser} onLogout={handleLogout} onDeleteAccount={handleDeleteAccount} onChangePassword={handleChangePassword} userAds={userAds} userAdsLoading={userAdsLoading} onUnpublishAd={handleUnpublishAd} onRepublishAd={handleRepublishAd} onPrefillCreateAd={ad => { setPrefillAdData(ad); setShowCreateWizard(true); }} onUpdateNotificationSettings={handleUpdateNotificationSettings} onOpenDeveloperContact={() => { window.location.href = `mailto:${supportEmail}`; }} masterUsersList={masterUsers} onMasterBlockUser={handleMasterBlockUser} onMasterUnblockUser={handleMasterUnblockUser} systemLogs={systemLogs} /> : <div className="p-8 text-center"><button onClick={() => setShowAuthModal(true)} className="bg-[#087747] text-white font-semibold px-6 py-3 rounded-xl shadow cursor-pointer">Войти в профиль</button></div>}</Suspense></main>
     <Suspense fallback={null}>
       {selectedAd ? <AdDetailsModal ad={selectedAd} onClose={() => setSelectedAd(null)} currentUser={currentUser} onOpenAuth={() => setShowAuthModal(true)} onRequestPhone={handleRequestPhone} onSubmitComplaint={handleSubmitComplaint} /> : null}
       {showCreateWizard ? <CreateAdWizard onClose={() => setShowCreateWizard(false)} onSubmit={handleCreateAdSubmit} onReportIssue={handleReportModerationIssue} prefillData={prefillAdData} /> : null}
       {showAuthModal ? <AuthModal onClose={() => setShowAuthModal(false)} onLoginSuccess={user => { setCurrentUser(user); setShowAuthModal(false); }} onLoginApi={handleLoginApi} onRegisterApi={handleRegisterApi} onRecoveryApi={handleRecoveryApi} onYandexApi={handleYandexApi} /> : null}
     </Suspense>
-  </div>;
+    </div>
+  </PullToRefresh>;
 }

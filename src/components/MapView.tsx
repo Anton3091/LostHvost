@@ -4,10 +4,12 @@ import { Locate, Bell, Check, Trash2, MapPin, ChevronRight, Settings, X, Loader2
 import { PublicAdItem, GeoSubscription } from '../types';
 import { cartoTileUrl } from '../theme';
 import { getCurrentLocation, isGeolocationPermissionDenied, isStandalonePwa } from '../geolocation';
+import { getAdsCollectionState } from '../adsRefresh';
 import { PUSH_UNSUPPORTED_ERROR, PwaInstallGuideModal, PwaPushUnsupportedMessage } from './PwaInstallGuideModal';
 
 interface MapViewProps {
   ads: PublicAdItem[];
+  adsLoading: boolean;
   onSelectAd: (ad: PublicAdItem) => void;
   onViewportChange?: (minLat: number, maxLat: number, minLng: number, maxLng: number) => void;
   geoSubscription: GeoSubscription | null;
@@ -25,6 +27,7 @@ const formatSubscriptionRadius = (radius: number) => radius >= 1000 ? `${radius 
 
 export const MapView: React.FC<MapViewProps> = ({
   ads,
+  adsLoading,
   onSelectAd,
   onViewportChange,
   geoSubscription,
@@ -34,6 +37,7 @@ export const MapView: React.FC<MapViewProps> = ({
   isLoggedIn,
   onOpenAuth,
 }) => {
+  const adsCollectionState = getAdsCollectionState(adsLoading, ads.length);
   const mapRef = useRef<HTMLDivElement>(null);
   const leafletMap = useRef<L.Map | null>(null);
   const baseTileLayer = useRef<L.TileLayer | null>(null);
@@ -428,7 +432,7 @@ export const MapView: React.FC<MapViewProps> = ({
       {showPwaInstallGuide && <PwaInstallGuideModal onClose={() => setShowPwaInstallGuide(false)} />}
 
       {/* SECTION 2: MIDDLE MAP SECTION (INTEGRATED MAP CONTAINER) */}
-      <section className="relative w-full h-[360px] rounded-3xl overflow-hidden shadow-xl border border-white/70 liquid-glass">
+      <section data-pull-refresh-ignore="true" className="relative w-full h-[360px] rounded-3xl overflow-hidden shadow-xl border border-white/70 liquid-glass">
         {/* Map Canvas */}
         <div ref={mapRef} className="w-full h-full z-0" />
 
@@ -470,18 +474,25 @@ export const MapView: React.FC<MapViewProps> = ({
                 Питомцы на карте
               </h3>
               <span className="px-2.5 py-0.5 rounded-full bg-[#087747]/15 text-[#0C8C50] text-xs font-bold">
-                {ads.length}
+                {adsLoading ? '…' : ads.length}
               </span>
             </div>
             <span className="text-[11px] text-slate-400 font-medium">
-              Нажмите для просмотра
+              {adsLoading ? 'Обновляем список' : 'Нажмите для просмотра'}
             </span>
           </div>
 
         </div>
 
         {/* Pet Cards List */}
-        {ads.length === 0 ? (
+        {adsCollectionState === 'loading' ? (
+          <div className="liquid-glass p-8 rounded-3xl text-center space-y-3" role="status">
+            <Loader2 className="w-5 h-5 mx-auto animate-spin text-[#0C8C50]" />
+            <p className="text-sm font-semibold text-slate-600">
+              Загружаем объявления…
+            </p>
+          </div>
+        ) : adsCollectionState === 'empty' ? (
           <div className="liquid-glass p-8 rounded-3xl text-center space-y-2">
             <p className="text-sm font-semibold text-slate-600">
               Питомцы не найдены
