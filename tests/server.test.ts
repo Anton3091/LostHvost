@@ -55,6 +55,12 @@ test('защищённый маршрут требует авторизацию'
   assert.deepEqual(await response.json(), { error: 'Необходима авторизация' });
 });
 
+test('тестовое push-уведомление требует авторизацию', async () => {
+  const response = await request('/api/push/test', { method: 'POST' });
+  assert.equal(response.status, 401);
+  assert.deepEqual(await response.json(), { error: 'Необходима авторизация' });
+});
+
 test('регистрация создаёт сессию и возвращает нормализованный профиль', async () => {
   const response = await request('/api/auth/register', {
     method: 'POST',
