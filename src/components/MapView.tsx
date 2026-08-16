@@ -3,7 +3,7 @@ import L from 'leaflet';
 import { Locate, Bell, Check, Trash2, MapPin, ChevronRight, Settings, X, Loader2 } from 'lucide-react';
 import { PublicAdItem, GeoSubscription } from '../types';
 import { cartoTileUrl } from '../theme';
-import { getCurrentLocation, isGeolocationPermissionDenied } from '../geolocation';
+import { getCurrentLocation, isGeolocationPermissionDenied, isStandalonePwa } from '../geolocation';
 import { PUSH_UNSUPPORTED_ERROR, PwaInstallGuideModal, PwaPushUnsupportedMessage } from './PwaInstallGuideModal';
 
 interface MapViewProps {
@@ -13,6 +13,7 @@ interface MapViewProps {
   geoSubscription: GeoSubscription | null;
   onSaveSubscription: (lat: number, lng: number, radius: number) => Promise<void>;
   onDeleteSubscription: () => void;
+  onSendTestNotification: () => Promise<void>;
   isLoggedIn: boolean;
   onOpenAuth: () => void;
 }
@@ -29,6 +30,7 @@ export const MapView: React.FC<MapViewProps> = ({
   geoSubscription,
   onSaveSubscription,
   onDeleteSubscription,
+  onSendTestNotification,
   isLoggedIn,
   onOpenAuth,
 }) => {
@@ -49,6 +51,8 @@ export const MapView: React.FC<MapViewProps> = ({
   const [subscriptionSaved, setSubscriptionSaved] = useState(false);
   const [subscriptionSaving, setSubscriptionSaving] = useState(false);
   const [subscriptionSaveError, setSubscriptionSaveError] = useState<string | null>(null);
+  const [testNotificationSending, setTestNotificationSending] = useState(false);
+  const [testNotificationMessage, setTestNotificationMessage] = useState<string | null>(null);
   const [showPwaInstallGuide, setShowPwaInstallGuide] = useState(false);
 
   useEffect(() => {
@@ -260,6 +264,7 @@ export const MapView: React.FC<MapViewProps> = ({
     }
     setSubscriptionSaved(false);
     setSubscriptionSaveError(null);
+    setTestNotificationMessage(null);
     setIsSubMode(!isSubMode);
   };
 
@@ -293,14 +298,36 @@ export const MapView: React.FC<MapViewProps> = ({
                 <p className="text-[11px] text-slate-500 font-medium">Push-уведомления включены в настройках</p>
               </div>
             </div>
-            <div className="rounded-2xl border border-blue-200/80 bg-blue-50/80 p-3 space-y-1.5 text-[11px] leading-relaxed text-blue-900">
-              <p className="font-bold">Пуши работают только в установленном PWA</p>
-              <p>На iPhone или iPad откройте LostHvost в Safari, нажмите «Поделиться» → «На экран Домой», затем запускайте сайт с иконки и разрешите уведомления.</p>
+            {!isStandalonePwa() ? <div className="rounded-2xl border border-blue-200/80 bg-blue-50/80 p-3 space-y-1.5 text-[11px] leading-relaxed text-blue-900">
+                <p className="font-bold">Пуши работают только в установленном PWA</p>
+                <p>На iPhone или iPad откройте LostHvost в Safari, нажмите «Поделиться» → «На экран Домой», затем запускайте сайт с иконки и разрешите уведомления.</p>
+              </div> : null}
+            <div className="space-y-2">
+              <button
+                type="button"
+                disabled={testNotificationSending}
+                onClick={async () => {
+                  setTestNotificationSending(true);
+                  setTestNotificationMessage(null);
+                  try {
+                    await onSendTestNotification();
+                    setTestNotificationMessage('Тестовое уведомление отправлено');
+                  } catch (error: any) {
+                    setTestNotificationMessage(error.message || 'Не удалось отправить тестовое уведомление');
+                  } finally {
+                    setTestNotificationSending(false);
+                  }
+                }}
+                className="w-full bg-[#087747] hover:bg-[#06683D] disabled:opacity-60 text-white font-semibold py-2.5 rounded-2xl text-xs transition cursor-pointer disabled:cursor-wait"
+              >
+                {testNotificationSending ? 'Отправляем…' : 'Тестовое уведомление'}
+              </button>
+              {testNotificationMessage ? <p className={`text-center text-[11px] font-medium ${testNotificationMessage === 'Тестовое уведомление отправлено' ? 'text-[#087747]' : 'text-rose-600'}`} role="status">{testNotificationMessage}</p> : null}
             </div>
             <button
               type="button"
               onClick={() => setSubscriptionSaved(false)}
-              className="w-full bg-[#087747] hover:bg-[#06683D] text-white font-semibold py-2.5 rounded-2xl text-xs transition cursor-pointer"
+              className="w-full border border-slate-300 bg-white/60 hover:bg-white text-slate-600 font-semibold py-2.5 rounded-2xl text-xs transition cursor-pointer"
             >
               Вернуться к карте
             </button>

@@ -13,6 +13,20 @@ interface AdDetailsModalProps {
   onSubmitComplaint: (adId: string, captchaToken: string) => Promise<void>;
 }
 
+const YandexMapsLogo = () => (
+  <svg viewBox="0 0 32 32" aria-hidden="true" className="h-8 w-8">
+    <path fill="#FFCC00" d="M16 2.5c-6.35 0-11.5 4.94-11.5 11.03 0 7.78 9.9 15.03 11.5 16.03 1.6-1 11.5-8.25 11.5-16.03C27.5 7.44 22.35 2.5 16 2.5Z" />
+    <path fill="#E00034" d="M16 7.5c-3.27 0-5.92 2.56-5.92 5.72 0 2.51 1.67 4.64 3.98 5.4v5.32h3.88v-5.32c2.31-.76 3.98-2.89 3.98-5.4 0-3.16-2.65-5.72-5.92-5.72Zm0 3.25c1.45 0 2.63 1.1 2.63 2.47s-1.18 2.47-2.63 2.47-2.63-1.1-2.63-2.47 1.18-2.47 2.63-2.47Z" />
+  </svg>
+);
+
+const TwoGisLogo = () => (
+  <svg viewBox="0 0 32 32" aria-hidden="true" className="h-8 w-8">
+    <circle cx="16" cy="16" r="14" fill="#20A859" />
+    <path fill="#fff" d="M9.5 11.2c1.25-1.2 3.04-1.92 5.1-1.92 3.7 0 6.2 2.16 6.2 5.18 0 2.1-1.08 3.38-3.56 4.84l-3.74 2.2h7.46v2.42H10.1v-2.26l5.75-3.53c1.72-1.06 2.3-1.82 2.3-3.39 0-1.8-1.34-3.05-3.45-3.05-1.27 0-2.48.47-3.52 1.4l-1.68-1.89Z" />
+  </svg>
+);
+
 export const AdDetailsModal: React.FC<AdDetailsModalProps> = ({
   ad,
   onClose,
@@ -222,22 +236,26 @@ export const AdDetailsModal: React.FC<AdDetailsModalProps> = ({
                   {ad.lat.toFixed(6)}, {ad.lng.toFixed(6)}
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="flex items-center gap-3">
                 <a
                   href={`https://yandex.ru/maps/?ll=${encodeURIComponent(`${ad.lng},${ad.lat}`)}&z=16&pt=${encodeURIComponent(`${ad.lng},${ad.lat},pm2rdm`)}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="min-h-10 rounded-xl bg-[#ffcc00]/20 px-2 py-2 text-center text-[11px] font-semibold text-slate-800 transition hover:bg-[#ffcc00]/35 active:scale-[0.98]"
+                  aria-label="Открыть координаты в Яндекс Картах"
+                  title="Яндекс Карты"
+                  className="inline-flex rounded-full p-0 transition hover:scale-110 active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E00034]"
                 >
-                  Яндекс Карты
+                  <YandexMapsLogo />
                 </a>
                 <a
                   href={`https://2gis.ru/geo/${ad.lng},${ad.lat}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="min-h-10 rounded-xl bg-[#e8f7ef] px-2 py-2 text-center text-[11px] font-semibold text-[#087747] transition hover:bg-[#d5f0e1] active:scale-[0.98]"
+                  aria-label="Открыть координаты в 2ГИС"
+                  title="2ГИС"
+                  className="inline-flex rounded-full p-0 transition hover:scale-110 active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#20A859]"
                 >
-                  2ГИС
+                  <TwoGisLogo />
                 </a>
               </div>
             </div>
