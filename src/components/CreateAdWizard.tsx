@@ -555,7 +555,7 @@ export const CreateAdWizard: React.FC<CreateAdWizardProps> = ({
                 <div className="p-5 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-2xl text-center space-y-2">
                   <CheckCircle2 className="w-10 h-10 text-emerald-500 mx-auto" />
                   <h4 className="font-bold text-sm">Объявление прошло модерацию и опубликовано!</h4>
-                  <p className="text-xs">Оно появится на карте и просуществует 7 суток.</p>
+                  <p className="text-xs">Оно появится на карте и просуществует 14 суток.</p>
                   <button
                     onClick={onClose}
                     className="mt-2 bg-emerald-600 text-white font-medium px-4 py-2 rounded-xl text-xs cursor-pointer"
