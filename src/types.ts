@@ -35,7 +35,7 @@ export interface AdItem {
   lng: number;
   city?: string;
   createdAt: string; // ISO date string
-  expiresAt: string; // ISO date string (createdAt + 7 days)
+  expiresAt: string; // ISO date string (createdAt + 14 days)
   unpublishedAt?: string; // ISO date string
   viewsCount: number;
   status: AdStatus;
