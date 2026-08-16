@@ -3,6 +3,7 @@ import {createRoot} from 'react-dom/client';
 import App from './App.tsx';
 import { MainPage } from './MainPage.tsx';
 import { isStandalonePwa } from './geolocation.ts';
+import { shouldRegisterServiceWorker } from './pwa.ts';
 import './index.css';
 
 const isMainPage = /^\/main\/?$/.test(window.location.pathname);
@@ -14,7 +15,7 @@ function PwaUpdatePrompt() {
   const isPwa = isStandalonePwa();
 
   useEffect(() => {
-    if (!isPwa || !('serviceWorker' in navigator) || !import.meta.env.PROD) return;
+    if (!shouldRegisterServiceWorker(import.meta.env.PROD, 'serviceWorker' in navigator)) return;
 
     const onControllerChange = () => {
       if (reloadAfterActivation.current) window.location.reload();
@@ -23,7 +24,7 @@ function PwaUpdatePrompt() {
 
     const watchRegistration = (workerRegistration: ServiceWorkerRegistration) => {
       const showUpdate = () => {
-        if (workerRegistration.waiting && navigator.serviceWorker.controller) setRegistration(workerRegistration);
+        if (isPwa && workerRegistration.waiting && navigator.serviceWorker.controller) setRegistration(workerRegistration);
       };
       showUpdate();
       workerRegistration.addEventListener('updatefound', () => {

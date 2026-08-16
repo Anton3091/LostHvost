@@ -1,7 +1,7 @@
 const CACHE = 'losthvost-static-__BUILD_VERSION__';
 const CACHE_PREFIX = 'losthvost-static-';
 const APP_SHELL = '/';
-const STATIC_PATHS = new Set(['/manifest.webmanifest', '/losthvost.png', '/apple-touch-icon.png', '/asset-manifest.json']);
+const STATIC_PATHS = new Set(['/manifest.webmanifest', '/icon-192.png', '/losthvost.png', '/apple-touch-icon.png', '/asset-manifest.json']);
 
 function isCacheableResponse(response) {
   return response.ok && response.type === 'basic';
