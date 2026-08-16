@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { CheckCircle2, Cloud } from 'lucide-react';
+import { CheckCircle2, ShieldCheck } from 'lucide-react';
 
 interface CaptchaWidgetProps {
   onVerify: (token: string) => void;
@@ -9,53 +9,57 @@ interface CaptchaWidgetProps {
 
 declare global {
   interface Window {
-    turnstile?: {
+    smartCaptcha?: {
       render: (
         container: HTMLElement | string,
         options: {
           sitekey: string;
           callback: (token: string) => void;
-          'error-callback'?: () => void;
-          'expired-callback'?: () => void;
-          theme?: 'light' | 'dark' | 'auto';
+          hl?: 'ru' | 'en' | 'be' | 'kk' | 'tt' | 'uk' | 'uz' | 'tr';
+          theme?: 'light' | 'dark';
+          shieldPosition?: 'top-left' | 'center-left' | 'bottom-left' | 'top-right' | 'center-right' | 'bottom-right';
         }
       ) => string;
       reset: (widgetId: string) => void;
-      remove: (widgetId: string) => void;
+      destroy: (widgetId: string) => void;
+      subscribe: (
+        widgetId: string,
+        event: 'network-error' | 'javascript-error' | 'token-expired',
+        callback: () => void
+      ) => () => void;
     };
-    onloadTurnstileCallback?: () => void;
   }
 }
 
 export const CaptchaWidget: React.FC<CaptchaWidgetProps> = ({
   onVerify,
   isVerified,
-  siteKey = ((import.meta as any).env?.VITE_CLOUDFLARE_TURNSTILE_SITE_KEY as string)
+  siteKey = ((import.meta as any).env?.VITE_YANDEX_SMARTCAPTCHA_SITE_KEY as string)
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const widgetIdRef = useRef<string | null>(null);
-  const [turnstileLoaded, setTurnstileLoaded] = useState(false);
+  const [smartCaptchaLoaded, setSmartCaptchaLoaded] = useState(false);
   const [renderError, setRenderError] = useState(false);
 
-  // Attempt to load Cloudflare Turnstile API script dynamically
   useEffect(() => {
-    if (window.turnstile) {
-      setTurnstileLoaded(true);
+    if (window.smartCaptcha) {
+      setSmartCaptchaLoaded(true);
       return;
     }
 
-    const scriptId = 'cf-turnstile-script';
+    const scriptId = 'yandex-smartcaptcha-script';
     let script = document.getElementById(scriptId) as HTMLScriptElement;
 
     if (!script) {
       script = document.createElement('script');
       script.id = scriptId;
-      script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
+      script.src = 'https://smartcaptcha.cloud.yandex.ru/captcha.js?render=onload';
       script.async = true;
       script.defer = true;
 
       script.onload = () => {
-        setTurnstileLoaded(true);
+        if (window.smartCaptcha) setSmartCaptchaLoaded(true);
+        else setRenderError(true);
       };
 
       script.onerror = () => {
@@ -64,21 +68,25 @@ export const CaptchaWidget: React.FC<CaptchaWidgetProps> = ({
 
       document.head.appendChild(script);
     } else {
-      setTurnstileLoaded(true);
+      const checkLoaded = () => {
+        if (window.smartCaptcha) setSmartCaptchaLoaded(true);
+        else setRenderError(true);
+      };
+      script.addEventListener('load', checkLoaded, { once: true });
+      return () => script.removeEventListener('load', checkLoaded);
     }
   }, []);
 
-  // Render Cloudflare Turnstile widget when script is ready
   useEffect(() => {
-    if (!turnstileLoaded || !window.turnstile || !containerRef.current || isVerified || widgetIdRef.current) {
+    if (!smartCaptchaLoaded || !window.smartCaptcha || !containerRef.current || widgetIdRef.current || !siteKey) {
       return;
     }
 
     try {
-      const isDark = document.documentElement.classList.contains('dark');
-      const widgetId = window.turnstile.render(containerRef.current, {
+      const widgetId = window.smartCaptcha.render(containerRef.current, {
         sitekey: siteKey,
-        theme: isDark ? 'dark' : 'light',
+        hl: 'ru',
+        theme: 'light',
         callback: (token: string) => {
           if (token) {
             setRenderError(false);
@@ -87,42 +95,55 @@ export const CaptchaWidget: React.FC<CaptchaWidgetProps> = ({
             onVerify('');
             setRenderError(true);
           }
-        },
-        'error-callback': () => {
-          onVerify('');
-          setRenderError(true);
-        },
-        'expired-callback': () => {
-          onVerify('');
         }
       });
       widgetIdRef.current = widgetId;
+
+      const unsubscribeNetworkError = window.smartCaptcha.subscribe(widgetId, 'network-error', () => {
+        onVerify('');
+        setRenderError(true);
+      });
+      const unsubscribeJavaScriptError = window.smartCaptcha.subscribe(widgetId, 'javascript-error', () => {
+        onVerify('');
+        setRenderError(true);
+      });
+      const unsubscribeTokenExpired = window.smartCaptcha.subscribe(widgetId, 'token-expired', () => {
+        onVerify('');
+      });
+
+      return () => {
+        unsubscribeNetworkError();
+        unsubscribeJavaScriptError();
+        unsubscribeTokenExpired();
+        if (widgetIdRef.current && window.smartCaptcha) {
+          window.smartCaptcha.destroy(widgetIdRef.current);
+          widgetIdRef.current = null;
+        }
+      };
     } catch (err) {
-      console.warn('Cloudflare Turnstile render fallback:', err);
+      console.warn('Yandex SmartCaptcha render error:', err);
       setRenderError(true);
     }
+  }, [smartCaptchaLoaded, siteKey, onVerify]);
 
-    return () => {
-      if (widgetIdRef.current && window.turnstile) {
-        try {
-          window.turnstile.remove(widgetIdRef.current);
-        } catch (_) {}
-        widgetIdRef.current = null;
-      }
-    };
-  }, [turnstileLoaded, siteKey, isVerified, onVerify]);
+  useEffect(() => {
+    if (!isVerified && widgetIdRef.current && window.smartCaptcha) {
+      window.smartCaptcha.reset(widgetIdRef.current);
+    }
+  }, [isVerified]);
 
-  useEffect(() => { if (!siteKey) setRenderError(true); }, [siteKey]);
+  useEffect(() => {
+    if (!siteKey) {
+      onVerify('');
+      setRenderError(true);
+    }
+  }, [siteKey, onVerify]);
 
   return (
-    <div className="liquid-glass-card rounded-2xl p-3.5 border border-slate-200/80 dark:border-slate-800 flex flex-col space-y-2 select-none shadow-sm">
-      {/* Real Turnstile Container if script loaded and no error */}
-      {!renderError && (
-        <div ref={containerRef} className="flex justify-center my-1" />
-      )}
+    <div className="liquid-glass-card rounded-2xl p-3.5 border border-slate-200/80 flex flex-col space-y-2 select-none shadow-sm">
+      <div ref={containerRef} className="min-h-[100px] flex justify-center my-1" />
 
-      {/* Interactive Fallback or Backup UI if Turnstile script is loading or rendered */}
-      {(renderError || !turnstileLoaded || isVerified) && (
+      {(renderError || !smartCaptchaLoaded || isVerified) && (
         <div className="flex items-center justify-between">
           <div
             className="flex items-center space-x-3 text-left focus:outline-none group cursor-pointer"
@@ -131,29 +152,29 @@ export const CaptchaWidget: React.FC<CaptchaWidgetProps> = ({
               className={`w-7 h-7 rounded-lg border flex items-center justify-center transition-all duration-200 ${
                 isVerified
                   ? 'bg-[#34C759] border-[#34C759] text-white shadow-sm'
-                  : 'border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 group-hover:border-[#008E3A]'
+                  : 'border-slate-300 bg-white group-hover:border-[#0C8C50]'
               }`}
             >
               {isVerified ? (
                 <CheckCircle2 className="w-5 h-5 text-white" />
               ) : (
-                <div className="w-2.5 h-2.5 rounded-sm bg-transparent group-hover:bg-[#008E3A]/30 transition" />
+                <div className="w-2.5 h-2.5 rounded-sm bg-transparent group-hover:bg-[#087747]/30 transition" />
               )}
             </div>
 
             <div>
-              <p className="text-xs font-semibold text-slate-800 dark:text-slate-200">
-                {isVerified ? 'Защита от ботов пройдена' : 'Проверка безопасности недоступна'}
+              <p className="text-xs font-semibold text-slate-800">
+                {isVerified ? 'Защита от ботов пройдена' : renderError ? 'Проверка безопасности недоступна' : 'Загрузка проверки безопасности'}
               </p>
-              <p className="text-[10px] text-slate-500 dark:text-slate-400">
-                Проверка безопасности от спама
+              <p className="text-[10px] text-slate-500">
+                Проверка от спама Yandex SmartCaptcha
               </p>
             </div>
           </div>
 
-          <div className="flex items-center space-x-1 text-slate-400 dark:text-slate-500 text-[10px] font-semibold pl-2">
-            <Cloud className="w-3.5 h-3.5 text-[#F38020]" />
-            <span className="hidden sm:inline tracking-wider">CLOUDFLARE</span>
+          <div className="flex items-center space-x-1 text-slate-400 text-[10px] font-semibold pl-2">
+            <ShieldCheck className="w-3.5 h-3.5 text-[#FC3F1D]" />
+            <span className="hidden sm:inline tracking-wider">YANDEX</span>
           </div>
         </div>
       )}

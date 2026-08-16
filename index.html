@@ -3,16 +3,39 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
-    <meta name="theme-color" content="#008e3a" />
-    <meta name="description" content="LostHvost — объявления о пропавших и найденных домашних животных" />
+    <meta name="theme-color" content="#fbfcf8" />
+    <meta name="description" content="Поиск пропавших и найденных животных на карте LostHvost. Размещайте объявления, смотрите находки рядом и помогайте питомцам вернуться домой." />
+    <meta name="google-site-verification" content="Phz4x_zHYP6aECOHOm_EZQklhu1sVqU7BDeygLEK3X4" />
+    <meta name="robots" content="index,follow,max-image-preview:large" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <link rel="manifest" href="/manifest.webmanifest" />
-    <link rel="icon" href="/losthvost.png" />
+    <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png" />
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
-    <title>LostHvost — поиск домашних животных</title>
+    <link rel="canonical" href="https://losthvost.ru/" />
+    <meta property="og:type" content="website" />
+    <meta property="og:locale" content="ru_RU" />
+    <meta property="og:site_name" content="LostHvost" />
+    <meta property="og:title" content="LostHvost — карта пропавших и найденных животных" />
+    <meta property="og:description" content="Поиск пропавших и найденных животных на карте LostHvost." />
+    <meta property="og:url" content="https://losthvost.ru/" />
+    <meta property="og:image" content="https://losthvost.ru/losthvost.png" />
+    <title>LostHvost — карта пропавших и найденных животных</title>
   </head>
   <body>
     <div id="root"></div>
+<!-- Yandex.Metrika counter -->
+    <script type="text/javascript">
+        (function(m,e,t,r,i,k,a){
+            m[i]=m[i]||function(){(m[i].a=m[i].a||[]).push(arguments)};
+            m[i].l=1*new Date();
+            for (var j = 0; j < document.scripts.length; j++) {if (document.scripts[j].src === r) { return; }}
+            k=e.createElement(t),a=e.getElementsByTagName(t)[0],k.async=1,k.src=r,a.parentNode.insertBefore(k,a)
+        })(window, document,'script','https://mc.yandex.ru/metrika/tag.js?id=111640132', 'ym');
+
+        ym(111640132, 'init', {ssr:true, webvisor:true, clickmap:true, ecommerce:"dataLayer", referrer: document.referrer, url: location.href, accurateTrackBounce:true, trackLinks:true});
+    </script>
+    <noscript><div><img src="https://mc.yandex.ru/watch/111640132" style="position:absolute; left:-9999px;" alt="" /></div></noscript>
+    <!-- /Yandex.Metrika counter -->
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

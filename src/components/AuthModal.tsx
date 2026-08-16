@@ -108,17 +108,19 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 10 }}
           transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-          className="relative z-10 liquid-glass w-full max-w-md rounded-3xl p-6 shadow-2xl space-y-4 text-slate-900 dark:text-slate-100"
+          className="relative z-10 liquid-glass w-full max-w-md rounded-3xl p-6 shadow-2xl space-y-4 text-slate-900"
         >
           <button
-          onClick={onClose}
-          className="absolute top-4 right-4 w-8 h-8 rounded-full bg-slate-200/60 dark:bg-slate-800/60 text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 flex items-center justify-center transition cursor-pointer"
-        >
+            type="button"
+            onClick={onClose}
+            aria-label="Закрыть"
+            className="absolute top-4 right-4 w-8 h-8 rounded-full bg-slate-200/60 text-slate-500 hover:text-slate-800 flex items-center justify-center transition cursor-pointer"
+          >
           <X className="w-4 h-4" />
         </button>
 
         <div className="space-y-1 text-center">
-          <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100">
+          <h2 className="text-xl font-bold text-slate-900">
             {mode === 'login' && 'Вход в аккаунт'}
             {mode === 'register' && 'Регистрация'}
             {mode === 'recovery' && 'Восстановление пароля'}
@@ -129,14 +131,14 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         </div>
 
         {error && (
-          <div className="p-3 bg-rose-50 dark:bg-rose-950/50 text-rose-600 dark:text-rose-400 text-xs rounded-xl flex items-center space-x-2 border border-rose-200">
+          <div className="p-3 bg-rose-50 text-rose-600 text-xs rounded-xl flex items-center space-x-2 border border-rose-200">
             <AlertCircle className="w-4 h-4 flex-shrink-0" />
             <span>{error}</span>
           </div>
         )}
 
         {recoverySuccess ? (
-          <div className="p-4 bg-emerald-50 dark:bg-emerald-950/50 text-emerald-800 dark:text-emerald-200 text-xs rounded-xl text-center space-y-2">
+          <div className="p-4 bg-emerald-50 text-emerald-800 text-xs rounded-xl text-center space-y-2">
             <p className="font-semibold">Инструкции по восстановлению отправлены!</p>
             <p>Проверьте вашу почту ({email}) для установки нового пароля.</p>
             <button
@@ -150,7 +152,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           <form onSubmit={handleSubmit} className="space-y-3">
             {mode === 'register' && (
               <div className="space-y-1">
-                <label className="text-xs font-medium text-slate-700 dark:text-slate-300">
+                <label className="text-xs font-medium text-slate-700">
                   Ваше имя
                 </label>
                 <div className="relative">
@@ -161,14 +163,14 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                     value={name}
                     onChange={e => setName(e.target.value)}
                     placeholder="Александр"
-                    className="w-full border border-slate-200 dark:border-slate-800 rounded-xl p-2.5 pl-9 text-xs bg-slate-50 dark:bg-slate-800"
+                    className="w-full border border-slate-200 rounded-xl p-2.5 pl-9 text-xs bg-slate-50"
                   />
                 </div>
               </div>
             )}
 
             <div className="space-y-1">
-              <label className="text-xs font-medium text-slate-700 dark:text-slate-300">
+              <label className="text-xs font-medium text-slate-700">
                 E-mail адрес
               </label>
               <div className="relative">
@@ -179,14 +181,14 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                   value={email}
                   onChange={e => setEmail(e.target.value)}
                   placeholder="name@example.com"
-                  className="w-full border border-slate-200 dark:border-slate-800 rounded-xl p-2.5 pl-9 text-xs bg-slate-50 dark:bg-slate-800"
+                  className="w-full border border-slate-200 rounded-xl p-2.5 pl-9 text-xs bg-slate-50"
                 />
               </div>
             </div>
 
             {mode !== 'recovery' && (
               <div className="space-y-1">
-                <label className="text-xs font-medium text-slate-700 dark:text-slate-300">
+                <label className="text-xs font-medium text-slate-700">
                   Пароль
                 </label>
                 <div className="relative">
@@ -197,7 +199,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                     value={password}
                     onChange={e => setPassword(e.target.value)}
                     placeholder="••••••••"
-                    className="w-full border border-slate-200 dark:border-slate-800 rounded-xl p-2.5 pl-9 text-xs bg-slate-50 dark:bg-slate-800"
+                    className="w-full border border-slate-200 rounded-xl p-2.5 pl-9 text-xs bg-slate-50"
                   />
                 </div>
               </div>
@@ -205,7 +207,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
             {mode === 'register' && (
               <div className="space-y-1">
-                <label className="text-xs font-medium text-slate-700 dark:text-slate-300">
+                <label className="text-xs font-medium text-slate-700">
                   Повторите пароль
                 </label>
                 <div className="relative">
@@ -217,23 +219,23 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                     onChange={e => setConfirmPassword(e.target.value)}
                     placeholder="••••••••"
                     autoComplete="new-password"
-                    className="w-full border border-slate-200 dark:border-slate-800 rounded-xl p-2.5 pl-9 text-xs bg-slate-50 dark:bg-slate-800"
+                    className="w-full border border-slate-200 rounded-xl p-2.5 pl-9 text-xs bg-slate-50"
                   />
                 </div>
               </div>
             )}
 
             {mode === 'register' && (
-              <label className="flex items-start space-x-2.5 text-xs text-slate-600 dark:text-slate-300 cursor-pointer py-1 select-none">
+              <label className="flex items-start space-x-2.5 text-xs text-slate-600 cursor-pointer py-1 select-none">
                 <input
                   type="checkbox"
                   required
                   checked={consent}
                   onChange={e => setConsent(e.target.checked)}
-                  className="mt-0.5 rounded border-slate-300 text-[#008E3A] focus:ring-[#008E3A] w-4 h-4 cursor-pointer accent-[#008E3A]"
+                  className="mt-0.5 rounded border-slate-300 text-[#0C8C50] focus:ring-[#0C8C50] w-4 h-4 cursor-pointer accent-[#0C8C50]"
                 />
                 <span className="leading-snug text-[11px]">
-                  Я даю согласие на <a href="#" onClick={(e) => { e.preventDefault(); alert('Согласие на обработку персональных данных в соответствии с ФЗ-152'); }} className="text-[#008E3A] underline font-medium">обработку персональных данных</a> и соглашаюсь с правилами сервиса
+                  Я даю согласие на <a href="#" onClick={(e) => { e.preventDefault(); alert('Согласие на обработку персональных данных в соответствии с ФЗ-152'); }} className="text-[#0C8C50] underline font-medium">обработку персональных данных</a> и соглашаюсь с правилами сервиса
                 </span>
               </label>
             )}
@@ -246,7 +248,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             <button
               type="submit"
               disabled={loading || !captchaToken || (mode === 'register' && !consent)}
-              className="w-full h-11 bg-[#008E3A] hover:bg-[#007A32] disabled:opacity-50 text-white font-semibold rounded-xl text-sm shadow-md shadow-emerald-700/20 transition cursor-pointer"
+              className="w-full h-11 bg-[#087747] hover:bg-[#06683D] disabled:opacity-50 text-white font-semibold rounded-xl text-sm shadow-md shadow-emerald-700/20 transition cursor-pointer"
             >
               {loading
                 ? 'Загрузка...'
@@ -273,7 +275,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         )}
 
         {/* Mode Switchers */}
-        <div className="border-t border-slate-100 dark:border-slate-800 pt-3 flex flex-wrap justify-between text-xs text-slate-500">
+        <div className="border-t border-slate-100 pt-3 flex flex-wrap justify-between text-xs text-slate-500">
           {mode === 'login' ? (
             <>
               <button
@@ -284,7 +286,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               </button>
               <button
                 onClick={() => { setMode('register'); setError(null); setCaptchaToken(''); }}
-                className="text-[#008E3A] font-semibold hover:underline cursor-pointer"
+                className="inline-flex min-h-9 items-center justify-center rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-sm font-semibold text-[#0C8C50] shadow-sm shadow-emerald-700/10 transition hover:bg-emerald-100 hover:shadow-md cursor-pointer"
               >
                 Регистрация
               </button>
@@ -292,7 +294,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           ) : (
             <button
               onClick={() => { setMode('login'); setError(null); setCaptchaToken(''); }}
-              className="text-[#008E3A] font-semibold hover:underline cursor-pointer mx-auto"
+              className="text-[#0C8C50] font-semibold hover:underline cursor-pointer mx-auto"
             >
               Уже есть аккаунт? Войти
             </button>

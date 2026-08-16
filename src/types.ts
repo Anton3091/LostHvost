@@ -15,7 +15,9 @@ export interface User {
   notificationSettings: {
     push: boolean;
     email: boolean;
+    telegram: boolean;
   };
+  telegramConnected?: boolean;
   createdAt: string;
 }
 
@@ -27,11 +29,13 @@ export interface AdItem {
   photos: string[]; // Base64 or URL strings (1 to 3)
   petName?: string;
   contactName: string;
+  phone?: string;
   description: string;
   lat: number;
   lng: number;
+  city?: string;
   createdAt: string; // ISO date string
-  expiresAt: string; // ISO date string (createdAt + 7 days)
+  expiresAt: string; // ISO date string (createdAt + 14 days)
   unpublishedAt?: string; // ISO date string
   viewsCount: number;
   status: AdStatus;
@@ -50,11 +54,15 @@ export interface PublicAdItem {
   description: string;
   lat: number;
   lng: number;
+  city?: string;
   createdAt: string;
   expiresAt: string;
   status: AdStatus;
   viewsCount?: number; // Only returned if logged-in user is author!
   isAuthor?: boolean;
+  phone?: string; // Returned only to the author for editing their own ad.
+  unpublishedAt?: string;
+  rejectionReason?: string;
 }
 
 export interface GeoSubscription {
@@ -62,7 +70,7 @@ export interface GeoSubscription {
   userId: string;
   lat: number;
   lng: number;
-  radius: number; // 100, 500, 1000, 2000 meters
+  radius: number; // 500, 1000, 2000, 10000 meters
   isActive: boolean;
   createdAt: string;
 }

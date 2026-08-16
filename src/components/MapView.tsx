@@ -1,18 +1,27 @@
 import React, { useEffect, useRef, useState } from 'react';
 import L from 'leaflet';
-import { Locate, Bell, Check, Trash2, MapPin, ChevronRight, Settings, X } from 'lucide-react';
+import { Locate, Bell, Check, Trash2, MapPin, ChevronRight, Settings, X, Loader2 } from 'lucide-react';
 import { PublicAdItem, GeoSubscription } from '../types';
+import { cartoTileUrl } from '../theme';
+import { getCurrentLocation, isGeolocationPermissionDenied, isStandalonePwa } from '../geolocation';
+import { PUSH_UNSUPPORTED_ERROR, PwaInstallGuideModal, PwaPushUnsupportedMessage } from './PwaInstallGuideModal';
 
 interface MapViewProps {
   ads: PublicAdItem[];
   onSelectAd: (ad: PublicAdItem) => void;
   onViewportChange?: (minLat: number, maxLat: number, minLng: number, maxLng: number) => void;
   geoSubscription: GeoSubscription | null;
-  onSaveSubscription: (lat: number, lng: number, radius: number) => void;
+  onSaveSubscription: (lat: number, lng: number, radius: number) => Promise<void>;
   onDeleteSubscription: () => void;
+  onSendTestNotification: () => Promise<void>;
   isLoggedIn: boolean;
   onOpenAuth: () => void;
 }
+
+const subscriptionRadii = [500, 1000, 2000, 10000];
+const normalizeSubscriptionRadius = (radius: number | undefined) =>
+  subscriptionRadii.includes(radius || 0) ? radius! : 1000;
+const formatSubscriptionRadius = (radius: number) => radius >= 1000 ? `${radius / 1000}км` : `${radius}м`;
 
 export const MapView: React.FC<MapViewProps> = ({
   ads,
@@ -21,22 +30,37 @@ export const MapView: React.FC<MapViewProps> = ({
   geoSubscription,
   onSaveSubscription,
   onDeleteSubscription,
+  onSendTestNotification,
   isLoggedIn,
-  onOpenAuth
+  onOpenAuth,
 }) => {
   const mapRef = useRef<HTMLDivElement>(null);
   const leafletMap = useRef<L.Map | null>(null);
+  const baseTileLayer = useRef<L.TileLayer | null>(null);
   const markersLayer = useRef<L.LayerGroup | null>(null);
   const userGpsMarker = useRef<L.Marker | null>(null);
   const subCircleLayer = useRef<L.Circle | null>(null);
   const subMarkerLayer = useRef<L.Marker | null>(null);
 
-  // Default subscription radius set to 10 km (10000 m) as requested
   const [isSubMode, setIsSubMode] = useState(false);
   const [locationHelpOpen, setLocationHelpOpen] = useState(false);
+  const [locationLoading, setLocationLoading] = useState(false);
   const [subLat, setSubLat] = useState<number>(geoSubscription?.lat || 55.751244);
   const [subLng, setSubLng] = useState<number>(geoSubscription?.lng || 37.598418);
-  const [subRadius, setSubRadius] = useState<number>(geoSubscription?.radius || 10000);
+  const [subRadius, setSubRadius] = useState<number>(() => normalizeSubscriptionRadius(geoSubscription?.radius));
+  const [subscriptionSaved, setSubscriptionSaved] = useState(false);
+  const [subscriptionSaving, setSubscriptionSaving] = useState(false);
+  const [subscriptionSaveError, setSubscriptionSaveError] = useState<string | null>(null);
+  const [testNotificationSending, setTestNotificationSending] = useState(false);
+  const [testNotificationMessage, setTestNotificationMessage] = useState<string | null>(null);
+  const [showPwaInstallGuide, setShowPwaInstallGuide] = useState(false);
+
+  useEffect(() => {
+    if (isSubMode) return;
+    setSubLat(geoSubscription?.lat || 55.751244);
+    setSubLng(geoSubscription?.lng || 37.598418);
+    setSubRadius(normalizeSubscriptionRadius(geoSubscription?.radius));
+  }, [geoSubscription, isSubMode]);
 
   // Initialize Leaflet Map
   useEffect(() => {
@@ -45,30 +69,24 @@ export const MapView: React.FC<MapViewProps> = ({
     const initialLat = geoSubscription?.lat || 55.751244;
     const initialLng = geoSubscription?.lng || 37.598418;
 
-    // Zoom level 11 scales to approximately a 10 km radius view
+    // Zoom level 9 gives a wider area view when the map opens
     const map = L.map(mapRef.current, {
       center: [initialLat, initialLng],
-      zoom: 11,
+      zoom: 9,
       zoomControl: false
     });
 
     map.attributionControl.setPrefix(false);
 
-    // CartoDB Voyager Tile Layer for clean aesthetic map
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+    baseTileLayer.current = L.tileLayer(cartoTileUrl, {
       maxZoom: 19,
-      attribution: '&copy; OpenStreetMap &copy; CARTO'
+      attribution: '&copy; OpenStreetMap contributors &copy; CARTO'
     }).addTo(map);
 
     L.control.zoom({ position: 'bottomright' }).addTo(map);
 
     markersLayer.current = L.layerGroup().addTo(map);
     leafletMap.current = map;
-
-    // Trigger size invalidation to fix initial tile rendering inside flex card
-    setTimeout(() => {
-      map.invalidateSize();
-    }, 200);
 
     // Viewport change listener
     const notifyViewport = () => {
@@ -84,9 +102,18 @@ export const MapView: React.FC<MapViewProps> = ({
 
     map.on('moveend', notifyViewport);
     map.on('zoomend', notifyViewport);
-    notifyViewport();
+
+    // Wait for the card to receive its final size before requesting ads for the
+    // viewport. The timer is cleared on cleanup because React StrictMode can
+    // mount and immediately dispose the first Leaflet instance in development.
+    const initialViewportTimer = window.setTimeout(() => {
+      if (leafletMap.current !== map) return;
+      map.invalidateSize({ pan: false });
+      notifyViewport();
+    }, 200);
 
     return () => {
+      window.clearTimeout(initialViewportTimer);
       map.remove();
       leafletMap.current = null;
     };
@@ -141,8 +168,8 @@ export const MapView: React.FC<MapViewProps> = ({
       // Draw Radius Circle
       subCircleLayer.current = L.circle([activeLat, activeLng], {
         radius: activeRadius,
-        color: '#008E3A',
-        fillColor: '#008E3A',
+        color: '#0C8C50',
+        fillColor: '#0C8C50',
         fillOpacity: 0.15,
         weight: 2,
         dashArray: '6, 6'
@@ -152,7 +179,7 @@ export const MapView: React.FC<MapViewProps> = ({
       const centerIcon = L.divIcon({
         className: 'sub-center-pin',
         html: `
-          <div style="background: #008E3A; width: 28px; height: 28px; border-radius: 50%; border: 3px solid white; display: flex; align-items: center; justify-content: center; color: white; box-shadow: 0 4px 12px rgba(0,142,58,0.4);">
+          <div style="background: #0C8C50; width: 28px; height: 28px; border-radius: 50%; border: 3px solid white; display: flex; align-items: center; justify-content: center; color: white; box-shadow: 0 4px 12px rgba(12,140,80,0.4);">
             📍
           </div>
         `,
@@ -190,12 +217,9 @@ export const MapView: React.FC<MapViewProps> = ({
   }, [isSubMode, subLat, subLng, subRadius, geoSubscription]);
 
   // Geolocation trigger
-  const handleGetLocation = () => {
-    if (!navigator.geolocation) {
-      alert('Геолокация не поддерживается вашим браузером');
-      return;
-    }
-
+  const handleGetLocation = async () => {
+    setLocationHelpOpen(false);
+    setLocationLoading(true);
     const applyLocation = (pos: GeolocationPosition) => {
       const { latitude, longitude } = pos.coords;
       if (!leafletMap.current) return;
@@ -213,28 +237,19 @@ export const MapView: React.FC<MapViewProps> = ({
       }
     };
 
-    const showLocationError = (error: GeolocationPositionError) => {
-      if (error.code === 1) {
+    try {
+      applyLocation(await getCurrentLocation());
+    } catch (error) {
+      if (isGeolocationPermissionDenied(error)) {
         setLocationHelpOpen(true);
-      } else if (error.code === 3) {
-        alert('Определение геопозиции заняло слишком много времени. Проверьте GPS и подключение к интернету.');
+      } else if (error instanceof Error && error.message === 'GEOLOCATION_UNSUPPORTED') {
+        alert('Геолокация не поддерживается вашим устройством.');
       } else {
-        setLocationHelpOpen(true);
+        alert('Не удалось определить местоположение. Проверьте GPS и подключение к интернету и повторите попытку.');
       }
-    };
-
-    navigator.geolocation.getCurrentPosition(
-      applyLocation,
-      error => {
-        if (error.code === 1) return showLocationError(error);
-        navigator.geolocation.getCurrentPosition(applyLocation, showLocationError, {
-          enableHighAccuracy: false,
-          timeout: 20000,
-          maximumAge: 300000
-        });
-      },
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
-    );
+    } finally {
+      setLocationLoading(false);
+    }
   };
 
   const toggleSubMode = () => {
@@ -247,169 +262,200 @@ export const MapView: React.FC<MapViewProps> = ({
       setSubLat(center.lat);
       setSubLng(center.lng);
     }
+    setSubscriptionSaved(false);
+    setSubscriptionSaveError(null);
+    setTestNotificationMessage(null);
     setIsSubMode(!isSubMode);
   };
 
-  const handleSaveSub = () => {
-    onSaveSubscription(subLat, subLng, subRadius);
-    setIsSubMode(false);
+  const handleSaveSub = async () => {
+    setSubscriptionSaving(true);
+    setSubscriptionSaveError(null);
+    try {
+      await onSaveSubscription(subLat, subLng, subRadius);
+      setIsSubMode(false);
+      setSubscriptionSaved(true);
+    } catch (error: any) {
+      setSubscriptionSaveError(error.message || 'Не удалось сохранить гео-подписку');
+    } finally {
+      setSubscriptionSaving(false);
+    }
   };
 
   return (
-    <div className="w-full max-w-4xl mx-auto px-4 py-4 space-y-5 text-slate-900 dark:text-slate-100">
+    <div className="w-full max-w-4xl mx-auto px-4 py-4 space-y-5 text-slate-900">
       
       {/* SECTION 1: TOP NOTIFICATION SUBSCRIPTION BLOCK */}
-      <section className="liquid-glass p-5 rounded-3xl space-y-3.5 border border-white/80 dark:border-white/10 shadow-xl">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-2.5">
-            <div className="w-9 h-9 rounded-2xl bg-[#008E3A]/15 text-[#008E3A] flex items-center justify-center font-semibold">
-              <Bell className="w-5 h-5" />
+      <section className={`liquid-glass border border-white/80 shadow-xl ${isSubMode ? 'p-5 rounded-3xl space-y-3.5' : 'p-3.5 rounded-2xl'}`}>
+        {subscriptionSaved ? (
+          <div className="space-y-3">
+            <div className="flex items-center space-x-2.5">
+              <div className="w-9 h-9 rounded-2xl bg-[#087747]/15 text-[#0C8C50] flex items-center justify-center font-semibold">
+                <Check className="w-5 h-5" />
+              </div>
+              <div>
+                <h2 className="text-sm font-bold text-slate-900 leading-tight">Гео-подписка сохранена</h2>
+                <p className="text-[11px] text-slate-500 font-medium">Push-уведомления включены в настройках</p>
+              </div>
             </div>
-            <div>
-              <h2 className="text-sm font-bold text-slate-900 dark:text-slate-100 leading-tight">
-                Гео-подписка на уведомления
-              </h2>
-              <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">
-                Мгновенные оповещения о животных поблизости
+            {!isStandalonePwa() ? <div className="rounded-2xl border border-blue-200/80 bg-blue-50/80 p-3 space-y-1.5 text-[11px] leading-relaxed text-blue-900">
+                <p className="font-bold">Пуши работают только в установленном PWA</p>
+                <p>На iPhone или iPad откройте LostHvost в Safari, нажмите «Поделиться» → «На экран Домой», затем запускайте сайт с иконки и разрешите уведомления.</p>
+              </div> : null}
+            <div className="space-y-2">
+              <button
+                type="button"
+                disabled={testNotificationSending}
+                onClick={async () => {
+                  setTestNotificationSending(true);
+                  setTestNotificationMessage(null);
+                  try {
+                    await onSendTestNotification();
+                    setTestNotificationMessage('Тестовое уведомление отправлено');
+                  } catch (error: any) {
+                    setTestNotificationMessage(error.message || 'Не удалось отправить тестовое уведомление');
+                  } finally {
+                    setTestNotificationSending(false);
+                  }
+                }}
+                className="w-full bg-[#087747] hover:bg-[#06683D] disabled:opacity-60 text-white font-semibold py-2.5 rounded-2xl text-xs transition cursor-pointer disabled:cursor-wait"
+              >
+                {testNotificationSending ? 'Отправляем…' : 'Тестовое уведомление'}
+              </button>
+              {testNotificationMessage ? <p className={`text-center text-[11px] font-medium ${testNotificationMessage === 'Тестовое уведомление отправлено' ? 'text-[#087747]' : 'text-rose-600'}`} role="status">{testNotificationMessage}</p> : null}
+            </div>
+            <button
+              type="button"
+              onClick={() => setSubscriptionSaved(false)}
+              className="w-full border border-slate-300 bg-white/60 hover:bg-white text-slate-600 font-semibold py-2.5 rounded-2xl text-xs transition cursor-pointer"
+            >
+              Вернуться к карте
+            </button>
+          </div>
+        ) : !isSubMode ? (
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-xl bg-[#087747]/15 text-[#0C8C50] flex items-center justify-center flex-shrink-0">
+              <Bell className="w-4 h-4" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <h2 className="text-sm font-bold text-slate-900 leading-tight">Гео-подписка</h2>
+              <p className="text-[11px] text-slate-500 leading-snug whitespace-normal break-words">
+                Выберите область на карте и получите уведомление как только появится новое объявление
               </p>
             </div>
-          </div>
-
-          {geoSubscription?.isActive && !isSubMode && (
-            <span className="px-3 py-1 rounded-full text-[11px] font-bold bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 flex items-center space-x-1">
-              <Check className="w-3 h-3" />
-              <span>Активно ({geoSubscription.radius >= 1000 ? `${geoSubscription.radius / 1000} км` : `${geoSubscription.radius} м`})</span>
-            </span>
-          )}
-        </div>
-
-        {/* Subscription Control Form / Controls */}
-        {!isSubMode ? (
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-1">
-            <div className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
-              {geoSubscription?.isActive ? (
-                <span>
-                  Вы получаете уведомления о новых карточках в радиусе <strong className="text-[#008E3A]">{geoSubscription.radius >= 1000 ? `${geoSubscription.radius / 1000} км` : `${geoSubscription.radius} м`}</strong>.
-                </span>
-              ) : (
-                <span>
-                  Выберите центральную точку на карте и задайте любой радиус зоны уведомлений.
-                </span>
-              )}
-            </div>
-
-            <div className="flex items-center space-x-2 flex-shrink-0">
+            <button
+              onClick={toggleSubMode}
+              className="bg-[#087747] hover:bg-[#06683D] text-white text-xs font-semibold px-3 py-2 rounded-xl shadow-md shadow-emerald-700/20 transition active:scale-95 cursor-pointer flex items-center gap-1.5 flex-shrink-0"
+            >
+              {geoSubscription?.isActive && <Check className="w-3.5 h-3.5" />}
+              <span>{geoSubscription?.isActive ? 'Изменить' : 'Настроить'}</span>
+            </button>
+            {geoSubscription?.isActive && (
               <button
-                onClick={toggleSubMode}
-                className="bg-[#008E3A] hover:bg-[#007A32] text-white text-xs font-semibold px-4 py-2.5 rounded-2xl shadow-md shadow-emerald-700/20 transition active:scale-95 cursor-pointer flex items-center space-x-1.5"
+                onClick={onDeleteSubscription}
+                title="Отключить подписку"
+                aria-label="Отключить гео-подписку"
+                className="bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 p-2 rounded-xl transition cursor-pointer flex-shrink-0"
               >
-                <Bell className="w-3.5 h-3.5" />
-                <span>{geoSubscription?.isActive ? 'Изменить зону' : 'Настроить подписку'}</span>
+                <Trash2 className="w-4 h-4" />
               </button>
-
-              {geoSubscription?.isActive && (
-                <button
-                  onClick={onDeleteSubscription}
-                  title="Отключить подписку"
-                  className="bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 p-2.5 rounded-2xl text-xs transition cursor-pointer"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
-              )}
-            </div>
+            )}
           </div>
         ) : (
-          <div className="space-y-3.5 pt-2 bg-white/40 dark:bg-slate-800/40 p-4 rounded-2xl border border-white/50 dark:border-white/5">
-            <div className="flex items-center justify-between text-xs font-semibold text-slate-700 dark:text-slate-200">
-              <div className="flex items-center space-x-1.5 text-[#008E3A]">
+          <>
+            <div className="flex items-center space-x-2.5">
+              <div className="w-9 h-9 rounded-2xl bg-[#087747]/15 text-[#0C8C50] flex items-center justify-center font-semibold">
+                <Bell className="w-5 h-5" />
+              </div>
+              <div>
+                <h2 className="text-sm font-bold text-slate-900 leading-tight">Гео-подписка на уведомления</h2>
+                <p className="text-[11px] text-slate-500 font-medium">Настройте точку и радиус зоны</p>
+              </div>
+            </div>
+            <div className="space-y-3.5 pt-2 bg-white/40 p-4 rounded-2xl border border-white/50">
+            <div className="flex items-center justify-between text-xs font-semibold text-slate-700">
+              <div className="flex items-center space-x-1.5 text-[#0C8C50]">
                 <MapPin className="w-4 h-4" />
-                <span>Радиус зоны: <strong className="text-[#008E3A]">{subRadius >= 1000 ? `${subRadius / 1000} км` : `${subRadius} м`}</strong></span>
+                <span>Радиус зоны: <strong className="text-[#0C8C50]">{formatSubscriptionRadius(subRadius)}</strong></span>
               </div>
-              <span className="text-[11px] text-slate-400">Перетащите маркер на карте ниже</span>
+              <span className="text-[11px] text-slate-400 text-right">Перетащите маркер на карте ниже</span>
             </div>
 
-            {/* Dynamic Range Slider */}
-            <div className="space-y-1.5">
-              <input
-                type="range"
-                min={500}
-                max={30000}
-                step={500}
-                value={subRadius}
-                onChange={e => setSubRadius(Number(e.target.value))}
-                className="w-full accent-[#008E3A] cursor-pointer"
-              />
-              <div className="flex justify-between text-[10px] font-medium text-slate-400">
-                <span>500 м</span>
-                <span>5 км</span>
-                <span>15 км</span>
-                <span>30 км</span>
-              </div>
-            </div>
-
-            {/* Quick Radius Selector Pills */}
-            <div className="grid grid-cols-5 gap-1.5">
-              {[1000, 3000, 5000, 10000, 20000].map(r => (
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
+              {subscriptionRadii.map(r => (
                 <button
                   key={r}
                   type="button"
                   onClick={() => setSubRadius(r)}
                   className={`py-1.5 text-xs font-semibold rounded-xl border transition cursor-pointer ${
                     subRadius === r
-                      ? 'bg-[#008E3A] text-white border-[#008E3A] shadow-md shadow-emerald-700/20'
-                      : 'border-white/60 bg-white/60 dark:bg-slate-800/60 text-slate-700 dark:text-slate-300 hover:bg-white'
+                      ? 'bg-[#087747] text-white border-[#0C8C50] shadow-md shadow-emerald-700/20'
+                      : 'border-white/60 bg-white/60 text-slate-700 hover:bg-white'
                   }`}
                 >
-                  {r >= 1000 ? `${r / 1000} км` : `${r} м`}
+                  {formatSubscriptionRadius(r)}
                 </button>
               ))}
             </div>
 
+            {subscriptionSaveError === PUSH_UNSUPPORTED_ERROR ? (
+              <PwaPushUnsupportedMessage onOpenGuide={() => setShowPwaInstallGuide(true)} />
+            ) : subscriptionSaveError ? (
+              <p className="text-xs font-semibold text-rose-600">{subscriptionSaveError}</p>
+            ) : null}
+
             <div className="flex space-x-2 pt-1">
               <button
                 onClick={handleSaveSub}
-                className="flex-1 bg-[#008E3A] hover:bg-[#007A32] text-white font-semibold py-2.5 rounded-2xl text-xs flex items-center justify-center space-x-1.5 shadow-md transition cursor-pointer"
+                disabled={subscriptionSaving}
+                className="flex-1 bg-[#087747] hover:bg-[#06683D] text-white font-semibold py-2.5 rounded-2xl text-xs flex items-center justify-center space-x-1.5 shadow-md transition cursor-pointer"
               >
-                <Check className="w-4 h-4" />
-                <span>Сохранить подписку ({subRadius >= 1000 ? `${subRadius / 1000} км` : `${subRadius} м`})</span>
+                {subscriptionSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+                <span>{subscriptionSaving ? 'Сохраняем…' : `Сохранить подписку (${formatSubscriptionRadius(subRadius)})`}</span>
               </button>
               <button
                 onClick={() => setIsSubMode(false)}
-                className="bg-slate-200/60 dark:bg-slate-800/60 text-slate-600 dark:text-slate-300 px-4 py-2.5 rounded-2xl text-xs font-semibold transition cursor-pointer"
+                className="bg-slate-200/60 text-slate-600 px-4 py-2.5 rounded-2xl text-xs font-semibold transition cursor-pointer"
               >
                 Отмена
               </button>
             </div>
-          </div>
+            </div>
+          </>
         )}
       </section>
 
+      {showPwaInstallGuide && <PwaInstallGuideModal onClose={() => setShowPwaInstallGuide(false)} />}
+
       {/* SECTION 2: MIDDLE MAP SECTION (INTEGRATED MAP CONTAINER) */}
-      <section className="relative w-full h-[360px] rounded-3xl overflow-hidden shadow-xl border border-white/70 dark:border-white/10 liquid-glass">
+      <section className="relative w-full h-[360px] rounded-3xl overflow-hidden shadow-xl border border-white/70 liquid-glass">
         {/* Map Canvas */}
         <div ref={mapRef} className="w-full h-full z-0" />
 
         {/* Legend Overlay Pill (Top-Left) */}
-        <div className="absolute top-3.5 left-3.5 z-[1000] liquid-glass px-3.5 py-2 rounded-full flex items-center space-x-3 text-xs font-medium text-slate-800 dark:text-slate-100 shadow-md">
+        <div className="absolute top-3.5 left-3.5 z-[1000] liquid-glass px-3.5 py-2 rounded-full flex items-center space-x-3 text-xs font-medium text-slate-800 shadow-md">
           <div className="flex items-center space-x-1.5">
-            <span className="w-2.5 h-2.5 rounded-full bg-[#ff9500] ring-2 ring-white shadow-sm" />
+            <span className="w-2.5 h-2.5 rounded-full bg-[#e53935] ring-2 ring-white shadow-sm" />
             <span className="text-[11px] font-semibold">Потерян</span>
           </div>
-          <span className="text-slate-300 dark:text-slate-600">|</span>
+          <span className="text-slate-300">|</span>
           <div className="flex items-center space-x-1.5">
-            <span className="w-2.5 h-2.5 rounded-full bg-[#34c759] ring-2 ring-white shadow-sm" />
+            <span className="w-2.5 h-2.5 rounded-full bg-[#2563eb] ring-2 ring-white shadow-sm" />
             <span className="text-[11px] font-semibold">Найден</span>
           </div>
         </div>
 
-        {/* Floating Controls Overlay (Top-Right) */}
-        <div className="absolute top-3.5 right-3.5 z-[1000] flex flex-col space-y-2">
+        {/* Floating location control aligned left of the Leaflet zoom controls */}
+        <div className="absolute bottom-7 right-14 z-[1000]">
           <button
+            type="button"
             onClick={handleGetLocation}
-            title="Мое местоположение"
-            className="w-10 h-10 liquid-glass text-slate-800 dark:text-slate-100 rounded-full flex items-center justify-center hover:scale-105 active:scale-95 transition shadow-md cursor-pointer"
+            disabled={locationLoading}
+            title={locationLoading ? 'Определяем местоположение' : 'Моё местоположение'}
+            aria-label={locationLoading ? 'Определяем местоположение' : 'Моё местоположение'}
+            className="w-10 h-10 liquid-glass text-slate-800 rounded-full flex items-center justify-center hover:scale-105 active:scale-95 transition shadow-md cursor-pointer disabled:opacity-60 disabled:cursor-wait"
           >
-            <Locate className="w-4 h-4 text-[#008E3A]" />
+            <Locate className={`w-4 h-4 text-[#0C8C50] ${locationLoading ? 'animate-pulse' : ''}`} />
           </button>
         </div>
       </section>
@@ -420,10 +466,10 @@ export const MapView: React.FC<MapViewProps> = ({
         <div className="flex flex-col space-y-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2">
-              <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">
+              <h3 className="text-base font-bold text-slate-900">
                 Питомцы на карте
               </h3>
-              <span className="px-2.5 py-0.5 rounded-full bg-[#008E3A]/15 text-[#008E3A] text-xs font-bold">
+              <span className="px-2.5 py-0.5 rounded-full bg-[#087747]/15 text-[#0C8C50] text-xs font-bold">
                 {ads.length}
               </span>
             </div>
@@ -437,7 +483,7 @@ export const MapView: React.FC<MapViewProps> = ({
         {/* Pet Cards List */}
         {ads.length === 0 ? (
           <div className="liquid-glass p-8 rounded-3xl text-center space-y-2">
-            <p className="text-sm font-semibold text-slate-600 dark:text-slate-300">
+            <p className="text-sm font-semibold text-slate-600">
               Питомцы не найдены
             </p>
             <p className="text-xs text-slate-400">
@@ -452,10 +498,10 @@ export const MapView: React.FC<MapViewProps> = ({
                 <div
                   key={ad.id}
                   onClick={() => onSelectAd(ad)}
-                  className="liquid-glass-card p-3.5 rounded-3xl flex items-center space-x-3.5 border border-white/70 dark:border-white/10 active:scale-[0.97] active:bg-slate-200/50 dark:active:bg-slate-800/50 transition-all duration-200 cursor-pointer shadow-sm group"
+                  className="liquid-glass-card p-3.5 rounded-3xl flex items-center space-x-3.5 border border-white/70 active:scale-[0.97] active:bg-slate-200/50 transition-all duration-200 cursor-pointer shadow-sm group"
                 >
                   {/* Thumbnail photo */}
-                  <div className="relative w-20 h-20 rounded-2xl overflow-hidden bg-slate-100 dark:bg-slate-800 flex-shrink-0 shadow-sm border border-black/5 dark:border-white/5">
+                  <div className="relative w-20 h-20 rounded-2xl overflow-hidden bg-slate-100 flex-shrink-0 shadow-sm border border-black/5">
                     <img
                       src={ad.photos[0] || 'https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&q=80&w=200'}
                       alt={ad.petName || 'Питомец'}
@@ -463,7 +509,7 @@ export const MapView: React.FC<MapViewProps> = ({
                     />
                     <span
                       className={`absolute top-1 left-1 px-1.5 py-0.5 rounded-md text-[9px] font-bold tracking-tight text-white ${
-                        isLost ? 'bg-[#FF9500]' : 'bg-[#34C759]'
+                        isLost ? 'bg-[#e53935]' : 'bg-[#2563eb]'
                       }`}
                     >
                       {isLost ? 'ПОТЕРЯЛСЯ' : 'НАЙДЕН'}
@@ -473,21 +519,21 @@ export const MapView: React.FC<MapViewProps> = ({
                   {/* Info details */}
                   <div className="flex-1 min-w-0 space-y-1">
                     <div className="flex items-center justify-between">
-                      <h4 className="text-sm font-bold text-slate-900 dark:text-slate-100 truncate">
-                        {ad.petName || (isLost ? 'Без клички' : 'Питомец без имени')}
+                      <h4 className="text-sm font-bold text-slate-900 truncate">
+                        {ad.petName || 'Питомец без имени'}
                       </h4>
                       <span className="text-[11px] text-slate-400 font-medium">
                         {ad.category === 'cat' ? '🐱 Кошка' : ad.category === 'dog' ? '🐶 Собака' : '🐾 Другое'}
                       </span>
                     </div>
 
-                    <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2 leading-snug">
+                    <p className="text-xs text-slate-500 line-clamp-2 leading-snug">
                       {ad.description}
                     </p>
 
                     <div className="flex items-center space-x-3 text-[10px] text-slate-400 font-medium pt-0.5">
                       <div className="flex items-center space-x-1 truncate">
-                        <MapPin className="w-3 h-3 text-[#008E3A] flex-shrink-0" />
+                        <MapPin className="w-3 h-3 text-[#0C8C50] flex-shrink-0" />
                         <span className="truncate">{ad.lat.toFixed(4)}, {ad.lng.toFixed(4)}</span>
                       </div>
                       <span>•</span>
@@ -496,7 +542,7 @@ export const MapView: React.FC<MapViewProps> = ({
                   </div>
 
                   {/* Chevron Right */}
-                  <div className="w-7 h-7 rounded-full bg-slate-100/80 dark:bg-slate-800/80 text-slate-400 group-hover:text-[#008E3A] group-hover:bg-[#008E3A]/10 flex items-center justify-center transition flex-shrink-0">
+                  <div className="w-7 h-7 rounded-full bg-slate-100/80 text-slate-400 group-hover:text-[#0C8C50] group-hover:bg-[#087747]/10 flex items-center justify-center transition flex-shrink-0">
                     <ChevronRight className="w-4 h-4" />
                   </div>
                 </div>
@@ -508,35 +554,46 @@ export const MapView: React.FC<MapViewProps> = ({
 
       {locationHelpOpen && (
         <div className="fixed inset-0 z-[2400] flex items-center justify-center bg-slate-950/45 backdrop-blur-sm p-4">
-          <div className="relative w-full max-w-sm rounded-3xl bg-white dark:bg-slate-900 p-5 shadow-2xl space-y-4 animate-[app-rise_260ms_cubic-bezier(0.22,1,0.36,1)_both]">
+          <div className="relative w-full max-w-sm rounded-3xl bg-white p-5 shadow-2xl space-y-4 animate-[app-rise_260ms_cubic-bezier(0.22,1,0.36,1)_both]">
             <button
               type="button"
               onClick={() => setLocationHelpOpen(false)}
-              className="absolute right-4 top-4 w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-500"
+              className="absolute right-4 top-4 w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500"
               aria-label="Закрыть"
             >
               <X className="w-4 h-4" />
             </button>
-            <div className="w-11 h-11 rounded-2xl bg-[#008E3A]/15 text-[#008E3A] flex items-center justify-center">
+            <div className="w-11 h-11 rounded-2xl bg-[#087747]/15 text-[#0C8C50] flex items-center justify-center">
               <Settings className="w-5 h-5" />
             </div>
             <div className="space-y-1.5 pr-8">
               <h3 className="text-base font-bold">Разрешите доступ к геопозиции</h3>
-              <p className="text-xs leading-relaxed text-slate-500 dark:text-slate-400">
-                Системные настройки нельзя открыть с веб-страницы автоматически. Включите геолокацию и разрешите её для LostHvost или браузера.
+              <p className="text-xs leading-relaxed text-slate-500">
+                Доступ к геопозиции отклонён браузером или системой. Проверьте разрешения и повторите запрос.
               </p>
             </div>
-            <div className="space-y-2 text-xs text-slate-700 dark:text-slate-300">
-              <p><strong>iPhone:</strong> Настройки → Конфиденциальность и безопасность → Службы геолокации → Safari Websites или LostHvost → При использовании.</p>
-              <p><strong>Android:</strong> Настройки → Приложения → LostHvost или браузер → Разрешения → Местоположение.</p>
+            <div className="space-y-2 text-xs text-slate-700">
+              <p><strong>1.</strong> В настройках устройства разрешите доступ к местоположению для браузера.</p>
+              <p><strong>2.</strong> В настройках сайта разрешите геопозицию для losthvost.ru.</p>
+              <p><strong>3.</strong> Вернитесь на сайт и повторите запрос.</p>
             </div>
-            <button
-              type="button"
-              onClick={() => setLocationHelpOpen(false)}
-              className="w-full h-11 rounded-2xl bg-[#008E3A] text-white text-sm font-semibold"
-            >
-              Понятно
-            </button>
+            <div className="space-y-2">
+              <button
+                type="button"
+                onClick={handleGetLocation}
+                disabled={locationLoading}
+                className="w-full h-11 rounded-2xl bg-[#087747] text-white text-sm font-semibold disabled:opacity-60"
+              >
+                Запросить ещё раз
+              </button>
+              <button
+                type="button"
+                onClick={() => setLocationHelpOpen(false)}
+                className="w-full h-10 rounded-2xl bg-slate-100 text-slate-700 text-sm font-semibold"
+              >
+                Закрыть
+              </button>
+            </div>
           </div>
         </div>
       )}
