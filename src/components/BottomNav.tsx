@@ -1,7 +1,7 @@
 import React from 'react';
 import { Map, Plus, User as UserIcon } from 'lucide-react';
 import { User } from '../types';
-const appIcon = '/losthvost-transparent.png';
+const appIcon = '/losthvost.png';
 
 interface BottomNavProps {
   activeScreen: 'map' | 'profile';

@@ -1,7 +1,7 @@
 const CACHE = 'losthvost-static-cache-reset-2026-08-16-__BUILD_VERSION__';
 const CACHE_PREFIX = 'losthvost-static-';
 const APP_SHELL = '/';
-const STATIC_PATHS = new Set(['/manifest.webmanifest', '/losthvost-transparent.png', '/asset-manifest.json']);
+const STATIC_PATHS = new Set(['/manifest.webmanifest', '/icon-192.png', '/losthvost.png', '/apple-touch-icon.png', '/asset-manifest.json']);
 
 function isCacheableResponse(response) {
   return response.ok && response.type === 'basic';
@@ -82,5 +82,5 @@ self.addEventListener('fetch', event => {
     }
   })());
 });
-self.addEventListener('push', event => { const data = event.data?.json() || {}; event.waitUntil(self.registration.showNotification(data.title || 'LostHvost', { body: data.body, icon: '/losthvost-transparent.png', data: { url: data.url || '/' } })); });
+self.addEventListener('push', event => { const data = event.data?.json() || {}; event.waitUntil(self.registration.showNotification(data.title || 'LostHvost', { body: data.body, icon: '/losthvost.png', data: { url: data.url || '/' } })); });
 self.addEventListener('notificationclick', event => { event.notification.close(); event.waitUntil(clients.openWindow(event.notification.data?.url || '/')); });

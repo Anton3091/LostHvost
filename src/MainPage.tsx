@@ -44,7 +44,7 @@ export function MainPage() {
     setProperty('og:description', pageDescription);
     setProperty('og:type', 'website');
     setProperty('og:url', 'https://losthvost.ru/main');
-    setProperty('og:image', 'https://losthvost.ru/losthvost-transparent.png');
+    setProperty('og:image', 'https://losthvost.ru/losthvost.png');
     setMeta('twitter:card', 'summary');
     setMeta('twitter:title', pageTitle);
     setMeta('twitter:description', pageDescription);
@@ -139,7 +139,7 @@ export function MainPage() {
     <div className="info-page">
       <header className="info-header info-enter info-enter-header">
         <a className="info-brand" href="/main" aria-label="LostHvost — на главную информационной страницы">
-          <img src="/losthvost-transparent.png" alt="" width="44" height="44" />
+          <img src="/losthvost.png" alt="" width="44" height="44" />
           <span>
             <strong>LostHvost</strong>
             <small>помощь питомцам</small>
@@ -266,7 +266,7 @@ export function MainPage() {
       </main>
 
       <footer className="info-footer" data-reveal>
-        <a className="info-brand" href="/main"><img src="/losthvost-transparent.png" alt="" width="36" height="36" /><span><strong>LostHvost</strong><small>поиск домашних животных</small></span></a>
+        <a className="info-brand" href="/main"><img src="/losthvost.png" alt="" width="36" height="36" /><span><strong>LostHvost</strong><small>поиск домашних животных</small></span></a>
         <p>Сервис, который помогает питомцам возвращаться домой.</p>
         <a href="/">Перейти к сервису <ArrowUpRight size={16} aria-hidden="true" /></a>
       </footer>
