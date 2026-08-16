@@ -105,7 +105,7 @@ function renderSeoPage(ad: any) {
   const title = adSeoTitle(seoAd);
   const description = adSeoDescription(ad);
   const photo = JSON.parse(ad.photos)[0] as string | undefined;
-  const imageUrl = photo ? `${appUrl}${photo}` : `${appUrl}/losthvost-transparent.png`;
+  const imageUrl = photo ? `${appUrl}${photo}` : `${appUrl}/losthvost.png`;
   const label = adSeoAction(seoAd.type);
   const subject = adSeoSubject(seoAd);
   const published = new Date(ad.created_at).toLocaleDateString('ru-RU', { year: 'numeric', month: 'long', day: 'numeric' });
@@ -399,7 +399,7 @@ app.get('/obyavleniya/:id/:slug?', (req, res) => {
   if (ad.status !== 'active' || Date.parse(ad.expires_at) <= Date.now()) return res.status(410).setHeader('X-Robots-Tag', 'noindex').send(renderUnavailableSeoPage());
   const canonicalPath = adSeoPath({ id: ad.id, type: ad.type, category: ad.category, petName: ad.pet_name, city: ad.city });
   if (req.path !== canonicalPath) return res.redirect(301, canonicalPath);
-  res.type('html').setHeader('Cache-Control', 'public, max-age=300, s-maxage=300').send(renderSeoPage(ad));
+  res.type('html').setHeader('Cache-Control', 'public, max-age=300, s-maxage=300').send(renderSeoPage(ad).replaceAll('/losthvost-transparent.png', '/losthvost.png'));
 });
 
 app.get('/api/auth/me', (req, res) => res.json({ user: req.user || null }));
