@@ -108,7 +108,12 @@ export default function App() {
   };
   const handleUnpublishAd = async (adId: string) => { await jsonFetch(`/api/ads/${adId}/unpublish`, { method: 'POST' }); fetchAds(); fetchUserData(); };
   const handleRepublishAd = async (adId: string) => { await jsonFetch(`/api/ads/${adId}/republish`, { method: 'POST' }); fetchAds(); fetchUserData(); };
-  const handleSelectAd = async (ad: PublicAdItem) => { try { const data = await jsonFetch(`/api/ads/${ad.id}`); setSelectedAd(data.ad); } catch (error: any) { alert(error.message); } };
+  const handleSelectAd = useCallback(async (ad: PublicAdItem) => { try { const data = await jsonFetch(`/api/ads/${ad.id}`); setSelectedAd(data.ad); } catch (error: any) { alert(error.message); } }, []);
+  useEffect(() => {
+    const sharedAdId = new URLSearchParams(location.search).get('ad');
+    if (!sharedAdId) return;
+    handleSelectAd({ id: sharedAdId } as PublicAdItem);
+  }, [handleSelectAd]);
   const enablePush = async () => {
     if (!('serviceWorker' in navigator) || !('PushManager' in window) || !('Notification' in window)) throw new Error('Push-уведомления не поддерживаются этим браузером');
     const permission = await Notification.requestPermission();
