@@ -24,7 +24,7 @@ function PwaUpdatePrompt() {
 
     const watchRegistration = (workerRegistration: ServiceWorkerRegistration) => {
       const showUpdate = () => {
-        if (isPwa && workerRegistration.waiting && navigator.serviceWorker.controller) setRegistration(workerRegistration);
+        if (workerRegistration.waiting && navigator.serviceWorker.controller) setRegistration(workerRegistration);
       };
       showUpdate();
       workerRegistration.addEventListener('updatefound', () => {

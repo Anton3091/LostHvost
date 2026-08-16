@@ -41,16 +41,6 @@ export const BottomNav: React.FC<BottomNavProps> = ({
           </div>
         </div>
 
-        <div className="flex items-center space-x-2">
-          {!currentUser && (
-            <button
-              onClick={onOpenAuth}
-              className="bg-[#087747] hover:bg-[#06683D] text-white px-4 py-1.5 rounded-full text-xs font-semibold shadow-md shadow-emerald-700/20 transition active:scale-95 cursor-pointer"
-            >
-              Войти
-            </button>
-          )}
-        </div>
       </header>
 
       {/* Bottom Floating Apple Liquid Glass Navigation Pill */}
