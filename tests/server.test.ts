@@ -45,6 +45,23 @@ test('служебные проверки живости и готовности
   assert.deepEqual(await ready.json(), { status: 'ready' });
 });
 
+test('политика опубликована отдельно и закрыта от индексации', async () => {
+  const response = await request('/privacy');
+  const html = await response.text();
+
+  assert.equal(response.status, 200);
+  assert.equal(response.headers.get('x-robots-tag'), 'noindex, nofollow, noarchive');
+  assert.match(html, /<meta name="robots" content="noindex,nofollow,noarchive">/);
+  assert.match(html, /Политика обработки персональных данных/);
+  assert.match(html, /antonbolyatko@yandex\.ru/);
+});
+
+test('запрет индексации политики не применяется к другим страницам', async () => {
+  const response = await request('/health/ready');
+
+  assert.equal(response.headers.get('x-robots-tag'), null);
+});
+
 test('срок публикации объявления составляет 14 суток', () => {
   assert.equal(publicationDays, 14);
 });

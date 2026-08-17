@@ -375,6 +375,15 @@ async function runModeration(ad: any) {
 app.get('/health/live', (_req, res) => res.json({ status: 'ok' }));
 app.get('/health/ready', (_req, res) => { try { db.prepare('SELECT 1').get(); res.json({ status: 'ready' }); } catch { res.status(503).json({ status: 'unavailable' }); } });
 
+app.get(['/privacy', '/privacy/'], (_req, res, next) => {
+  const policyPath = path.join(process.cwd(), production ? 'dist' : 'public', 'privacy', 'index.html');
+  res
+    .type('html')
+    .set('Cache-Control', 'no-cache')
+    .set('X-Robots-Tag', 'noindex, nofollow, noarchive')
+    .sendFile(policyPath, error => { if (error) next(error); });
+});
+
 app.get('/robots.txt', (_req, res) => { res.type('text/plain').setHeader('Cache-Control', 'public, max-age=3600'); res.send(`User-agent: *\nAllow: /\nDisallow: /api/\nSitemap: ${appUrl}/sitemap.xml\n`); });
 app.get('/sitemap.xml', (_req, res) => {
   const rows: any[] = db.prepare("SELECT id,type,category,pet_name,city,created_at FROM ads WHERE status='active' AND expires_at>? ORDER BY created_at DESC").all(nowIso());
