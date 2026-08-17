@@ -68,6 +68,31 @@ test('пользовательское соглашение опубликова
   assert.doesNotMatch(html, /вознаграж/i);
 });
 
+test('согласие на обработку данных опубликовано отдельно и закрыто от индексации', async () => {
+  const response = await request('/consent');
+  const html = await response.text();
+
+  assert.equal(response.status, 200);
+  assert.equal(response.headers.get('x-robots-tag'), 'noindex, nofollow, noarchive');
+  assert.match(html, /<meta name="robots" content="noindex,nofollow,noarchive">/);
+  assert.match(html, /Согласие на обработку персональных данных в сервисе LostHvost/);
+  assert.match(html, /antonbolyatko@yandex\.ru/);
+  assert.doesNotMatch(html, /Проект редакции/);
+});
+
+test('согласие на распространение опубликовано отдельно и закрыто от индексации', async () => {
+  const response = await request('/consent-publication');
+  const html = await response.text();
+
+  assert.equal(response.status, 200);
+  assert.equal(response.headers.get('x-robots-tag'), 'noindex, nofollow, noarchive');
+  assert.match(html, /<meta name="robots" content="noindex,nofollow,noarchive">/);
+  assert.match(html, /Согласие на обработку персональных данных, разрешенных для распространения/);
+  assert.match(html, /Нажимая «Опубликовать», я даю согласие на распространение персональных данных/);
+  assert.match(html, /номер телефона/);
+  assert.doesNotMatch(html, /Проект редакции/);
+});
+
 test('запрет индексации политики не применяется к другим страницам', async () => {
   const response = await request('/health/ready');
 
