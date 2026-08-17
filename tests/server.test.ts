@@ -56,6 +56,18 @@ test('политика опубликована отдельно и закрыт
   assert.match(html, /antonbolyatko@yandex\.ru/);
 });
 
+test('пользовательское соглашение опубликовано отдельно и закрыто от индексации', async () => {
+  const response = await request('/terms');
+  const html = await response.text();
+
+  assert.equal(response.status, 200);
+  assert.equal(response.headers.get('x-robots-tag'), 'noindex, nofollow, noarchive');
+  assert.match(html, /<meta name="robots" content="noindex,nofollow,noarchive">/);
+  assert.match(html, /Пользовательское соглашение сервиса LostHvost/);
+  assert.match(html, /пристройстве/);
+  assert.doesNotMatch(html, /вознаграж/i);
+});
+
 test('запрет индексации политики не применяется к другим страницам', async () => {
   const response = await request('/health/ready');
 
