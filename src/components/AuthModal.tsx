@@ -3,6 +3,7 @@ import { X, Lock, Mail, User, ShieldCheck, AlertCircle, Sparkles } from 'lucide-
 import { motion, AnimatePresence } from 'motion/react';
 import { CaptchaWidget } from './CaptchaWidget';
 import { User as UserType } from '../types';
+import { canRegister, LEGAL_DOCUMENT_PATHS, registrationConsentError } from '../legalDocuments';
 import yandexIdLogo from '../assets/images/yandex-id-logo.svg';
 
 interface AuthModalProps {
@@ -29,19 +30,24 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [name, setName] = useState('');
-  const [consent, setConsent] = useState(false);
+  const [personalDataConsent, setPersonalDataConsent] = useState(false);
+  const [termsAccepted, setTermsAccepted] = useState(false);
   const [captchaToken, setCaptchaToken] = useState('');
 
   // States
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [recoverySuccess, setRecoverySuccess] = useState(false);
+  const registrationAllowed = canRegister(personalDataConsent, termsAccepted);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (mode === 'register' && !consent) {
-      setError('Вы должны дать согласие на обработку персональных данных');
-      return;
+    if (mode === 'register') {
+      const consentError = registrationConsentError(personalDataConsent, termsAccepted);
+      if (consentError) {
+        setError(consentError);
+        return;
+      }
     }
 
     if (mode === 'register' && password !== confirmPassword) {
@@ -79,6 +85,14 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   };
 
   const handleYandexLogin = async () => {
+    if (mode === 'register') {
+      const consentError = registrationConsentError(personalDataConsent, termsAccepted);
+      if (consentError) {
+        setError(consentError);
+        return;
+      }
+    }
+
     setLoading(true);
     setError(null);
     try {
@@ -226,18 +240,32 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             )}
 
             {mode === 'register' && (
-              <label className="flex items-start space-x-2.5 text-xs text-slate-600 cursor-pointer py-1 select-none">
-                <input
-                  type="checkbox"
-                  required
-                  checked={consent}
-                  onChange={e => setConsent(e.target.checked)}
-                  className="mt-0.5 rounded border-slate-300 text-[#0C8C50] focus:ring-[#0C8C50] w-4 h-4 cursor-pointer accent-[#0C8C50]"
-                />
-                <span className="leading-snug text-[11px]">
-                  Я даю согласие на <a href="#" onClick={(e) => { e.preventDefault(); alert('Согласие на обработку персональных данных в соответствии с ФЗ-152'); }} className="text-[#0C8C50] underline font-medium">обработку персональных данных</a> и соглашаюсь с правилами сервиса
-                </span>
-              </label>
+              <div className="space-y-2 py-1">
+                <label className="flex items-start space-x-2.5 text-xs text-slate-600 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    required
+                    checked={personalDataConsent}
+                    onChange={e => setPersonalDataConsent(e.target.checked)}
+                    className="mt-0.5 rounded border-slate-300 text-[#0C8C50] focus:ring-[#0C8C50] w-4 h-4 cursor-pointer accent-[#0C8C50]"
+                  />
+                  <span className="leading-snug text-[11px]">
+                    Я даю <a href={LEGAL_DOCUMENT_PATHS.personalDataConsent} target="_blank" rel="noopener noreferrer" className="text-[#0C8C50] underline font-medium">согласие на обработку персональных данных</a>
+                  </span>
+                </label>
+                <label className="flex items-start space-x-2.5 text-xs text-slate-600 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    required
+                    checked={termsAccepted}
+                    onChange={e => setTermsAccepted(e.target.checked)}
+                    className="mt-0.5 rounded border-slate-300 text-[#0C8C50] focus:ring-[#0C8C50] w-4 h-4 cursor-pointer accent-[#0C8C50]"
+                  />
+                  <span className="leading-snug text-[11px]">
+                    Я принимаю <a href={LEGAL_DOCUMENT_PATHS.terms} target="_blank" rel="noopener noreferrer" className="text-[#0C8C50] underline font-medium">Пользовательское соглашение</a>
+                  </span>
+                </label>
+              </div>
             )}
 
             <CaptchaWidget
@@ -247,7 +275,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
             <button
               type="submit"
-              disabled={loading || !captchaToken || (mode === 'register' && !consent)}
+              disabled={loading || !captchaToken || (mode === 'register' && !registrationAllowed)}
               className="w-full h-11 bg-[#087747] hover:bg-[#06683D] disabled:opacity-50 text-white font-semibold rounded-xl text-sm shadow-md shadow-emerald-700/20 transition cursor-pointer"
             >
               {loading
@@ -264,7 +292,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               <button
                 type="button"
                 onClick={handleYandexLogin}
-                disabled={loading}
+                disabled={loading || (mode === 'register' && !registrationAllowed)}
                 className="w-full h-11 border border-black bg-black hover:bg-[#1f1f1f] disabled:opacity-50 text-white font-medium rounded-xl text-sm flex items-center justify-center gap-2.5 transition cursor-pointer"
               >
                 <img src={yandexIdLogo} alt="" aria-hidden="true" className="w-6 h-6" />

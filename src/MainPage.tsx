@@ -11,6 +11,7 @@ import {
   ShieldCheck,
 } from 'lucide-react';
 import './main-page.css';
+import { LEGAL_DOCUMENT_PATHS } from './legalDocuments';
 
 const pageTitle = 'LostHvost — поиск пропавших и найденных животных';
 const pageDescription = 'LostHvost помогает искать пропавших домашних животных, сообщать о найденных питомцах и получать уведомления о новых объявлениях рядом.';
@@ -274,7 +275,11 @@ export function MainPage() {
       <footer className="info-footer" data-reveal>
         <a className="info-brand" href="/main"><img src="/losthvost.png" alt="" width="36" height="36" /><span><strong>LostHvost</strong><small>поиск домашних животных</small></span></a>
         <p>Сервис, который помогает питомцам возвращаться домой.</p>
-        <a href="/">Перейти к сервису <ArrowUpRight size={16} aria-hidden="true" /></a>
+        <nav className="info-legal-links" aria-label="Юридические документы">
+          <a href={LEGAL_DOCUMENT_PATHS.privacy}>Политика обработки персональных данных</a>
+          <a href={LEGAL_DOCUMENT_PATHS.terms}>Пользовательское соглашение</a>
+        </nav>
+        <a className="info-footer-service-link" href="/">Перейти к сервису <ArrowUpRight size={16} aria-hidden="true" /></a>
       </footer>
     </div>
   );

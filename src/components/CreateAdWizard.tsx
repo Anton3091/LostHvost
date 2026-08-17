@@ -6,6 +6,7 @@ import { AdType, AdCategory } from '../types';
 import { CaptchaWidget } from './CaptchaWidget';
 import { cartoPickerTileUrl } from '../theme';
 import { getCurrentLocation, isGeolocationPermissionDenied } from '../geolocation';
+import { LEGAL_DOCUMENT_PATHS } from '../legalDocuments';
 
 interface CreateAdWizardProps {
   onClose: () => void;
@@ -550,6 +551,17 @@ export const CreateAdWizard: React.FC<CreateAdWizardProps> = ({
                       </>
                     )}
                   </button>
+                  <p className="px-2 text-center text-[11px] leading-relaxed text-slate-500">
+                    Нажимая «Опубликовать объявление», я даю{' '}
+                    <a
+                      href={LEGAL_DOCUMENT_PATHS.personalDataPublicationConsent}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="font-medium text-[#0C8C50] underline"
+                    >
+                      согласие на распространение персональных данных
+                    </a>.
+                  </p>
                 </>
               ) : moderationResult === 'success' ? (
                 <div className="p-5 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-2xl text-center space-y-2">
