@@ -384,6 +384,15 @@ app.get(['/privacy', '/privacy/'], (_req, res, next) => {
     .sendFile(policyPath, error => { if (error) next(error); });
 });
 
+app.get(['/terms', '/terms/'], (_req, res, next) => {
+  const agreementPath = path.join(process.cwd(), production ? 'dist' : 'public', 'terms', 'index.html');
+  res
+    .type('html')
+    .set('Cache-Control', 'no-cache')
+    .set('X-Robots-Tag', 'noindex, nofollow, noarchive')
+    .sendFile(agreementPath, error => { if (error) next(error); });
+});
+
 app.get('/robots.txt', (_req, res) => { res.type('text/plain').setHeader('Cache-Control', 'public, max-age=3600'); res.send(`User-agent: *\nAllow: /\nDisallow: /api/\nSitemap: ${appUrl}/sitemap.xml\n`); });
 app.get('/sitemap.xml', (_req, res) => {
   const rows: any[] = db.prepare("SELECT id,type,category,pet_name,city,created_at FROM ads WHERE status='active' AND expires_at>? ORDER BY created_at DESC").all(nowIso());
