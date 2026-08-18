@@ -6,6 +6,7 @@ import { PublicAdItem, User, GeoSubscription, AdItem, SystemLog } from './types'
 import { supportEmail } from './config';
 import { isStandalonePwa } from './geolocation';
 import { shouldRefreshAds } from './adsRefresh';
+import { LEGAL_DOCUMENT_PATHS } from './legalDocuments';
 
 const AdDetailsModal = lazy(() => import('./components/AdDetailsModal').then(module => ({ default: module.AdDetailsModal })));
 const CreateAdWizard = lazy(() => import('./components/CreateAdWizard').then(module => ({ default: module.CreateAdWizard })));
@@ -203,6 +204,12 @@ export default function App() {
     <BottomNav activeScreen={activeScreen} onNavigate={setActiveScreen} onCreateAdClick={handleCreateClick} currentUser={currentUser} onOpenAuth={() => setShowAuthModal(true)} />
     {networkUnavailable ? <div className="mx-4 mt-3 rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-900" role="status">Не удалось обновить данные. Сохранённая оболочка приложения остаётся доступной.</div> : null}
     <main className="flex-1 pb-20"><Suspense fallback={<div className="p-8 text-center text-slate-500">Загрузка…</div>}>{activeScreen === 'map' ? <MapView ads={ads} adsLoading={adsLoading} onSelectAd={handleSelectAd} onViewportChange={fetchAds} geoSubscription={geoSub} onSaveSubscription={handleSaveSubscription} onDeleteSubscription={handleDeleteSubscription} onSendTestNotification={handleSendTestNotification} isLoggedIn={Boolean(currentUser)} onOpenAuth={() => setShowAuthModal(true)} /> : currentUser ? <ProfileView user={currentUser} onLogout={handleLogout} onDeleteAccount={handleDeleteAccount} onChangePassword={handleChangePassword} userAds={userAds} userAdsLoading={userAdsLoading} onUnpublishAd={handleUnpublishAd} onRepublishAd={handleRepublishAd} onPrefillCreateAd={ad => { setPrefillAdData(ad); setShowCreateWizard(true); }} onUpdateNotificationSettings={handleUpdateNotificationSettings} onOpenDeveloperContact={() => { window.location.href = `mailto:${supportEmail}`; }} masterUsersList={masterUsers} onMasterBlockUser={handleMasterBlockUser} onMasterUnblockUser={handleMasterUnblockUser} systemLogs={systemLogs} /> : <div className="p-8 text-center"><button onClick={() => setShowAuthModal(true)} className="bg-[#087747] text-white font-semibold px-6 py-3 rounded-xl shadow cursor-pointer">Войти в профиль</button></div>}</Suspense></main>
+    <footer className="border-t border-slate-200 bg-slate-50 px-4 pb-24 pt-5 text-center text-xs text-slate-500">
+      <nav className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2" aria-label="Юридические документы">
+        <a href={LEGAL_DOCUMENT_PATHS.privacy} className="underline underline-offset-2 transition hover:text-[#0C8C50]">Политика обработки персональных данных</a>
+        <a href={LEGAL_DOCUMENT_PATHS.terms} className="underline underline-offset-2 transition hover:text-[#0C8C50]">Пользовательское соглашение</a>
+      </nav>
+    </footer>
     <Suspense fallback={null}>
       {selectedAd ? <AdDetailsModal ad={selectedAd} onClose={() => setSelectedAd(null)} currentUser={currentUser} onOpenAuth={() => setShowAuthModal(true)} onRequestPhone={handleRequestPhone} onSubmitComplaint={handleSubmitComplaint} /> : null}
       {showCreateWizard ? <CreateAdWizard onClose={() => setShowCreateWizard(false)} onSubmit={handleCreateAdSubmit} onReportIssue={handleReportModerationIssue} prefillData={prefillAdData} /> : null}
