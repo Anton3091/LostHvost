@@ -316,9 +316,11 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                       <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500 pt-1">
                         <div className="flex items-center gap-1 font-medium text-[#0C8C50]" title={`Просмотров: ${ad.viewsCount}`} aria-label={`Просмотров: ${ad.viewsCount}`}>
                           <Eye className="w-4 h-4" />
+                          <span>{ad.viewsCount}</span>
                         </div>
-                        <div className="flex items-center gap-1" title={`Опубликовано: ${new Date(ad.createdAt).toLocaleDateString('ru-RU')}`} aria-label={`Опубликовано: ${new Date(ad.createdAt).toLocaleDateString('ru-RU')}`}>
+                        <div className="flex items-center gap-1" title={`Срок публикации до: ${new Date(ad.expiresAt).toLocaleDateString('ru-RU')}`} aria-label={`Срок публикации до: ${new Date(ad.expiresAt).toLocaleDateString('ru-RU')}`}>
                           <Calendar className="w-4 h-4" />
+                          <span>{new Date(ad.expiresAt).toLocaleDateString('ru-RU')}</span>
                         </div>
                       </div>
                     </div>
