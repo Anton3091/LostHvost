@@ -347,7 +347,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                     ) : ad.status === 'rejected' ? (
                       <button
                         onClick={() => onPrefillCreateAd(ad)}
-                        className="w-full sm:w-auto bg-rose-50 hover:bg-rose-100 text-rose-700 font-semibold px-5 py-3 rounded-2xl text-xs transition cursor-pointer flex items-center justify-center space-x-1.5"
+                        className="w-full sm:w-auto bg-amber-50 hover:bg-amber-100 text-amber-700 font-semibold px-5 py-3 rounded-2xl text-xs transition cursor-pointer flex items-center justify-center space-x-1.5"
                       >
                         <Repeat className="w-4 h-4" />
                         <span>Изменить объявление</span>
