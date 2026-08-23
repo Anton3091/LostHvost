@@ -42,7 +42,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({
 
       </header>
 
-      <nav className="app-bottom-nav fixed bottom-[calc(1.25rem+env(safe-area-inset-bottom))] left-1/2 -translate-x-1/2 z-[1100] liquid-glass px-7 py-2.5 rounded-full shadow-2xl flex items-center space-x-8">
+      <nav className="app-bottom-nav fixed z-[1100] liquid-glass flex items-center">
         {/* Карта */}
         <button
           onClick={() => onNavigate('map')}
@@ -59,7 +59,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({
         {/* Central Creation Button (+ Pill) */}
         <button
           onClick={onCreateAdClick}
-          className="app-create-button w-12 h-12 rounded-full bg-[#126E4A] hover:bg-[#0D5638] text-white flex items-center justify-center -mt-6 border-4 border-white transition-transform duration-200 transform active:scale-90 cursor-pointer"
+          className="app-create-button bg-[#126E4A] hover:bg-[#0D5638] text-white flex items-center justify-center border-4 border-white transition-transform duration-200 cursor-pointer"
           title="Подать объявление"
         >
           <Plus className="w-6 h-6 stroke-[3]" />

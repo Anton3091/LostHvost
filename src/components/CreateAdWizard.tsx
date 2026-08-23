@@ -261,7 +261,7 @@ export const CreateAdWizard: React.FC<CreateAdWizardProps> = ({
 
   return (
     <AnimatePresence>
-      <div className="wizard-modal fixed inset-0 z-[2000] flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+      <div className={`wizard-modal fixed inset-0 z-[2000] flex items-center justify-center p-3 sm:p-4 overflow-y-auto ${step >= 3 ? 'wizard-modal--full' : ''}`}>
         {/* Backdrop */}
         <motion.div
           initial={{ opacity: 0 }}
@@ -277,11 +277,11 @@ export const CreateAdWizard: React.FC<CreateAdWizardProps> = ({
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 10 }}
           transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-          className="wizard-sheet relative z-10 liquid-glass w-full max-w-lg rounded-3xl overflow-hidden my-auto flex flex-col max-h-[92vh] text-slate-900 shadow-2xl"
+          className={`wizard-sheet relative z-10 liquid-glass w-full max-w-lg rounded-3xl overflow-hidden my-auto flex flex-col max-h-[92vh] text-slate-900 shadow-2xl ${step >= 3 ? 'wizard-sheet--full' : ''}`}
         >
           {/* Header */}
         <div className="wizard-header p-4 border-b border-slate-200/50 flex items-center justify-between">
-          <div>
+          <div className="wizard-progress-copy">
             <h2 className="text-base font-bold">
               Новое объявление ({step} из 5)
             </h2>
@@ -295,7 +295,7 @@ export const CreateAdWizard: React.FC<CreateAdWizardProps> = ({
           <button
             onClick={onClose}
             aria-label="Закрыть"
-            className="w-10 h-10 rounded-full bg-slate-200/60 text-slate-500 hover:text-slate-800 flex items-center justify-center transition cursor-pointer"
+            className="wizard-close bg-slate-200/60 text-slate-500 hover:text-slate-800 flex items-center justify-center transition cursor-pointer"
           >
             <X className="w-5 h-5 stroke-[2.5]" />
           </button>
@@ -312,7 +312,7 @@ export const CreateAdWizard: React.FC<CreateAdWizardProps> = ({
 
           {/* STEP 1: Type */}
           {step === 1 && (
-            <div className="space-y-3">
+            <div className="wizard-step wizard-step--type space-y-3">
               <h3 className="text-sm font-semibold text-slate-800">
                 Шаг 1: Укажите тип объявления
               </h3>
@@ -356,7 +356,7 @@ export const CreateAdWizard: React.FC<CreateAdWizardProps> = ({
 
           {/* STEP 2: Category */}
           {step === 2 && (
-            <div className="space-y-3">
+            <div className="wizard-step wizard-step--category space-y-3">
               <h3 className="text-sm font-semibold text-slate-800">
                 Шаг 2: Выберите категорию животного
               </h3>
@@ -383,7 +383,7 @@ export const CreateAdWizard: React.FC<CreateAdWizardProps> = ({
 
           {/* STEP 3: Photos, pet and contact details */}
           {step === 3 && (
-            <div className="space-y-4">
+            <div className="wizard-step wizard-step--data space-y-4">
               <div className="flex justify-between items-center">
                 <h3 className="text-sm font-semibold text-slate-800">
                   Шаг 3: Данные объявления
@@ -489,7 +489,7 @@ export const CreateAdWizard: React.FC<CreateAdWizardProps> = ({
 
           {/* STEP 4: Location */}
           {step === 4 && (
-            <div className="space-y-3">
+            <div className="wizard-step wizard-step--location space-y-3">
               <h3 className="text-sm font-semibold text-slate-800">
                 Шаг 4: Укажите точное место на карте
               </h3>
@@ -519,7 +519,7 @@ export const CreateAdWizard: React.FC<CreateAdWizardProps> = ({
 
           {/* STEP 5: Moderation & Publish */}
           {step === 5 && (
-            <div className="space-y-4">
+            <div className="wizard-step wizard-step--publish space-y-4">
               <h3 className="text-sm font-semibold text-slate-800">
                 Шаг 5: Проверка безопасности и публикация
               </h3>

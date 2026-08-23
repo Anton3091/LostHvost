@@ -50,3 +50,14 @@ test('в выборе типа и категории нет эмодзи', () =>
   assert.match(wizard, /const categoryOptions/);
   assert.match(wizard, /aria-pressed=\{category === id\}/);
 });
+
+test('мобильная навигация повторяет плавающую панель макета', () => {
+  assert.match(css, /\.app-bottom-nav \{[\s\S]*bottom: calc\(26px \+ env\(safe-area-inset-bottom\)\);[\s\S]*height: 64px;[\s\S]*border-radius: 24px;/);
+  assert.match(css, /\.app-create-button \{[\s\S]*width: 60px;[\s\S]*height: 60px;[\s\S]*border-radius: 22px;/);
+});
+
+test('длинные шаги объявления открываются на весь мобильный экран', () => {
+  assert.match(wizard, /step >= 3 \? 'wizard-modal--full'/);
+  assert.match(wizard, /step >= 3 \? 'wizard-sheet--full'/);
+  assert.match(css, /\.wizard-sheet--full \{[\s\S]*height: 100dvh;[\s\S]*border-radius: 0;/);
+});
