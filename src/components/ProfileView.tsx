@@ -285,12 +285,12 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                   key={ad.id}
                   className={`profile-ad-card bg-white border border-slate-200 p-5 rounded-3xl shadow-sm flex flex-col sm:flex-row items-start justify-between gap-5 transition ${!isActive ? 'opacity-80' : ''}`}
                 >
-                  <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-4 sm:space-y-0 sm:space-x-5 flex-1 w-full">
+                  <div className="profile-ad-summary flex flex-row items-start space-x-4 flex-1 w-full">
                     <div className="relative shrink-0">
                       <img
                         src={ad.photos[0] || ''}
                         alt="Фото"
-                        className="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl object-cover border border-slate-100"
+                        className="w-[84px] h-[84px] sm:w-28 sm:h-28 rounded-2xl object-cover border border-slate-100"
                       />
                       <div className="absolute -bottom-2.5 left-1/2 -translate-x-1/2">
                         <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full shadow-sm whitespace-nowrap ${
@@ -303,7 +303,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                       </div>
                     </div>
                     
-                    <div className="space-y-2 flex-1 mt-3 sm:mt-0">
+                    <div className="space-y-2 flex-1 min-w-0">
                       <div className="flex flex-col space-y-0.5">
                         <span className="text-base font-bold text-slate-900">
                           {ad.petName || 'Питомец без имени'}
