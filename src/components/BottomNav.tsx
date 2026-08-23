@@ -20,16 +20,15 @@ export const BottomNav: React.FC<BottomNavProps> = ({
 }) => {
   return (
     <>
-      {/* Top Apple Liquid Glass Header */}
-      <header className="h-16 bg-slate-50 shadow-none px-5 flex items-center justify-between">
+      <header className="app-header h-16 bg-slate-50 shadow-none px-5 flex items-center justify-between">
         <div
           onClick={() => onNavigate('map')}
-          className="flex items-center space-x-3 cursor-pointer select-none active:scale-95 transition"
+          className="app-brand flex items-center space-x-3 cursor-pointer select-none active:scale-95 transition"
         >
           <img
             src={appIcon}
             alt="LostHvost"
-            className="w-10 h-10 rounded-2xl shadow-md shadow-emerald-700/20 object-cover"
+            className="app-brand-logo w-10 h-10 rounded-2xl shadow-md shadow-emerald-700/20 object-cover"
           />
           <div>
             <h1 className="text-sm font-bold text-slate-900 tracking-tight leading-none">
@@ -43,14 +42,13 @@ export const BottomNav: React.FC<BottomNavProps> = ({
 
       </header>
 
-      {/* Bottom Floating Apple Liquid Glass Navigation Pill */}
-      <nav className="fixed bottom-[calc(1.25rem+env(safe-area-inset-bottom))] left-1/2 -translate-x-1/2 z-[1100] liquid-glass px-7 py-2.5 rounded-full shadow-2xl flex items-center space-x-8">
+      <nav className="app-bottom-nav fixed bottom-[calc(1.25rem+env(safe-area-inset-bottom))] left-1/2 -translate-x-1/2 z-[1100] liquid-glass px-7 py-2.5 rounded-full shadow-2xl flex items-center space-x-8">
         {/* Карта */}
         <button
           onClick={() => onNavigate('map')}
-          className={`flex flex-col items-center space-y-0.5 transition-all duration-200 cursor-pointer active:scale-95 ${
+          className={`app-bottom-nav-item flex flex-col items-center space-y-0.5 transition-all duration-200 cursor-pointer active:scale-95 ${
             activeScreen === 'map'
-              ? 'text-[#0C8C50] font-bold'
+              ? 'text-[#126E4A] font-bold'
               : 'text-slate-400 hover:text-slate-700'
           }`}
         >
@@ -61,7 +59,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({
         {/* Central Creation Button (+ Pill) */}
         <button
           onClick={onCreateAdClick}
-          className="w-12 h-12 rounded-full bg-[#087747] hover:bg-[#06683D] text-white flex items-center justify-center shadow-lg shadow-emerald-600/30 -mt-6 border-4 border-white/80 transition-transform duration-200 transform active:scale-90 cursor-pointer"
+          className="app-create-button w-12 h-12 rounded-full bg-[#126E4A] hover:bg-[#0D5638] text-white flex items-center justify-center -mt-6 border-4 border-white transition-transform duration-200 transform active:scale-90 cursor-pointer"
           title="Подать объявление"
         >
           <Plus className="w-6 h-6 stroke-[3]" />
@@ -76,9 +74,9 @@ export const BottomNav: React.FC<BottomNavProps> = ({
               onNavigate('profile');
             }
           }}
-          className={`flex flex-col items-center space-y-0.5 transition-all duration-200 cursor-pointer active:scale-95 ${
+          className={`app-bottom-nav-item flex flex-col items-center space-y-0.5 transition-all duration-200 cursor-pointer active:scale-95 ${
             activeScreen === 'profile'
-              ? 'text-[#0C8C50] font-bold'
+              ? 'text-[#126E4A] font-bold'
               : 'text-slate-400 hover:text-slate-700'
           }`}
         >

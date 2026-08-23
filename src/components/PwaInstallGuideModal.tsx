@@ -99,7 +99,7 @@ export function PwaInstallGuideModal({ onClose }: PwaInstallGuideModalProps) {
         <button
           type="button"
           onClick={onClose}
-          className="mt-6 min-h-14 w-full rounded-2xl bg-[#087747] text-base font-semibold text-white shadow-lg shadow-emerald-900/15 transition hover:bg-[#06683D]"
+          className="mt-6 min-h-14 w-full rounded-2xl bg-[#126E4A] text-base font-semibold text-white transition hover:bg-[#0D5638]"
         >
           Понятно
         </button>

@@ -133,9 +133,9 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
   };
 
   return (
-    <div className="w-full max-w-4xl mx-auto p-4 sm:p-6 space-y-6">
+    <div className="profile-view w-full max-w-4xl mx-auto p-4 sm:p-6 space-y-6">
       {/* Profile Header Bar */}
-      <div className="liquid-glass p-6 rounded-3xl shadow-lg flex items-center justify-between gap-4 text-slate-900">
+      <div className="profile-card liquid-glass p-6 rounded-3xl shadow-lg flex items-center justify-between gap-4 text-slate-900">
         <div className="min-w-0 flex items-center space-x-3">
           {user.avatarUrl ? (
             <img
@@ -144,7 +144,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
               className="w-12 h-12 rounded-2xl object-cover shadow-md shadow-emerald-700/20"
             />
           ) : (
-            <div className="w-12 h-12 rounded-2xl bg-[#087747] text-white flex items-center justify-center font-bold text-lg shadow-md shadow-emerald-700/20">
+            <div className="w-12 h-12 rounded-2xl bg-[#126E4A] text-white flex items-center justify-center font-bold text-lg">
               {user.name.charAt(0).toUpperCase()}
             </div>
           )}
@@ -174,7 +174,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
       </div>
 
       {/* iOS-Style Settings Block */}
-      <div className="bg-white border border-slate-200 rounded-3xl shadow-sm overflow-hidden text-sm">
+      <div className="profile-settings bg-white border border-slate-200 rounded-3xl shadow-sm overflow-hidden text-sm">
         <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
           <div className="flex flex-col">
             <span className="font-semibold text-slate-800">Push-уведомления</span>
@@ -184,7 +184,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
             type="checkbox"
             checked={pushEnabled}
             onChange={e => { const value = e.target.checked; setPushEnabled(value); handleSaveSettings(value); }}
-            className="w-5 h-5 rounded text-[#0C8C50] focus:ring-[#0C8C50] cursor-pointer"
+            className="w-5 h-5 rounded text-[#126E4A] focus:ring-[#126E4A] cursor-pointer"
           />
         </div>
         {notificationError === PUSH_UNSUPPORTED_ERROR ? (
@@ -222,12 +222,12 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
       </div>
 
       {/* Tabs Navigation */}
-      <div className="flex space-x-1 bg-slate-100 p-1 rounded-2xl overflow-x-auto text-xs font-semibold">
+      <div className="profile-tabs flex space-x-1 bg-slate-100 p-1 rounded-2xl overflow-x-auto text-xs font-semibold">
         <button
           onClick={() => setActiveTab('ads')}
           className={`flex-1 py-2 px-3 rounded-xl transition cursor-pointer whitespace-nowrap ${
             activeTab === 'ads'
-              ? 'bg-white text-[#0C8C50] font-bold shadow-sm'
+              ? 'bg-white text-[#126E4A] font-bold shadow-sm'
               : 'text-slate-600 hover:text-slate-900'
           }`}
         >
@@ -265,7 +265,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
         <div className="space-y-4">
           {userAdsLoading ? (
             <div className="bg-white border border-slate-200 p-8 rounded-2xl flex items-center justify-center gap-2 text-sm text-slate-500">
-              <Loader2 className="w-5 h-5 animate-spin text-[#0C8C50]" />
+              <Loader2 className="w-5 h-5 animate-spin text-[#126E4A]" />
               <span>Загружаем объявления…</span>
             </div>
           ) : allAds.length === 0 ? (
@@ -283,7 +283,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
               return (
                 <div
                   key={ad.id}
-                  className={`bg-white border border-slate-200 p-5 rounded-3xl shadow-sm flex flex-col sm:flex-row items-start justify-between gap-5 transition ${!isActive ? 'opacity-80' : ''}`}
+                  className={`profile-ad-card bg-white border border-slate-200 p-5 rounded-3xl shadow-sm flex flex-col sm:flex-row items-start justify-between gap-5 transition ${!isActive ? 'opacity-80' : ''}`}
                 >
                   <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-4 sm:space-y-0 sm:space-x-5 flex-1 w-full">
                     <div className="relative shrink-0">
@@ -314,7 +314,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                       </div>
 
                       <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500 pt-1">
-                        <div className="flex items-center gap-1 font-medium text-[#0C8C50]" title={`Просмотров: ${ad.viewsCount}`} aria-label={`Просмотров: ${ad.viewsCount}`}>
+                        <div className="flex items-center gap-1 font-medium text-[#126E4A]" title={`Просмотров: ${ad.viewsCount}`} aria-label={`Просмотров: ${ad.viewsCount}`}>
                           <Eye className="w-4 h-4" />
                           <span>{ad.viewsCount}</span>
                         </div>
@@ -466,7 +466,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
         <div className="fixed inset-0 z-[2100] bg-slate-900/70 flex items-center justify-center p-4">
           <div className="bg-white border border-slate-200 w-full max-w-md rounded-2xl p-5 shadow-2xl space-y-4">
             <div className="flex items-center space-x-2 text-slate-900">
-              <Key className="w-5 h-5 text-[#0C8C50]" />
+              <Key className="w-5 h-5 text-[#126E4A]" />
               <h3 className="text-base font-bold">Смена пароля</h3>
             </div>
             <p className="text-xs text-slate-500">Введите текущий пароль и новый пароль длиной не менее 10 символов.</p>
@@ -488,11 +488,11 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                 onChange={e => setPassForm({ ...passForm, newPass: e.target.value })}
                 className="w-full border border-slate-200 rounded-xl p-2.5 text-xs bg-slate-50"
               />
-              {passSuccess && <p className="text-[11px] text-[#0C8C50] font-semibold">Пароль успешно изменён</p>}
+              {passSuccess && <p className="text-[11px] text-[#126E4A] font-semibold">Пароль успешно изменён</p>}
               <div className="flex space-x-2 pt-1">
                 <button
                   type="submit"
-                  className="flex-1 bg-[#087747] hover:bg-[#06683D] text-white font-semibold py-2.5 rounded-xl text-xs transition cursor-pointer"
+                  className="flex-1 bg-[#126E4A] hover:bg-[#0D5638] text-white font-semibold py-2.5 rounded-xl text-xs transition cursor-pointer"
                 >
                   Обновить пароль
                 </button>

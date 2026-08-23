@@ -114,9 +114,9 @@ export function PullToRefresh({ children, enabled, onRefresh }: PullToRefreshPro
         style={{ opacity: visible ? 1 : 0, transform: `translateY(${Math.max(0, distance - 48)}px)` }}
       >
         <div className="liquid-glass flex items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold text-slate-700 shadow-lg">
-          {status === 'refreshing' ? <Loader2 className="h-4 w-4 animate-spin text-[#0C8C50]" />
-            : status === 'complete' ? <Check className="h-4 w-4 text-[#0C8C50]" />
-              : <ArrowDown className={`h-4 w-4 text-[#0C8C50] transition-transform ${status === 'ready' ? 'rotate-180' : ''}`} />}
+          {status === 'refreshing' ? <Loader2 className="h-4 w-4 animate-spin text-[#126E4A]" />
+            : status === 'complete' ? <Check className="h-4 w-4 text-[#126E4A]" />
+              : <ArrowDown className={`h-4 w-4 text-[#126E4A] transition-transform ${status === 'ready' ? 'rotate-180' : ''}`} />}
           <span>{label}</span>
         </div>
       </div>

@@ -1,0 +1,161 @@
+@font-face {
+  font-family: "Golos Text";
+  src: url("/fonts/golos-text-cyrillic.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 400 800;
+  font-display: swap;
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+
+@font-face {
+  font-family: "Golos Text";
+  src: url("/fonts/golos-text-latin.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 400 800;
+  font-display: swap;
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+2000-206F, U+20AC, U+2122;
+}
+
+:root {
+  color-scheme: light;
+  font-family: "Golos Text", system-ui, sans-serif;
+  background: #f5f7f5;
+  color: #101614;
+}
+
+body {
+  background: #f5f7f5;
+  color: #101614;
+  font-family: "Golos Text", system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+a { color: #126e4a; }
+
+.shell {
+  width: min(920px, calc(100% - 40px));
+  padding: 20px 0 64px;
+}
+
+.topbar {
+  min-height: 52px;
+  margin-bottom: 20px;
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  color: #101614;
+  font-size: 19px;
+  font-weight: 700;
+}
+
+.brand img {
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+}
+
+.back {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0 16px;
+  border: 1px solid #e6eae7;
+  border-radius: 14px;
+  color: #4a5551;
+  background: #fff;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+article {
+  padding: clamp(24px, 5vw, 56px);
+  border: 1px solid #e6eae7;
+  border-radius: 28px;
+  background: #fff;
+  box-shadow: none;
+}
+
+h1 {
+  color: #101614;
+  font-size: clamp(30px, 5vw, 46px);
+  font-weight: 800;
+  line-height: 1.08;
+  letter-spacing: -0.02em;
+}
+
+h2 {
+  color: #101614;
+  font-size: clamp(21px, 3vw, 28px);
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+h3 {
+  color: #101614;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+p,
+li {
+  color: #4a5551;
+  font-size: 15px;
+  line-height: 1.72;
+}
+
+strong { color: #101614; }
+
+article > p:nth-of-type(1) {
+  padding: 6px 12px;
+  border-radius: 9px;
+  color: #126e4a;
+  background: #eaf2ed;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+blockquote {
+  border-color: #126e4a;
+  border-radius: 14px;
+  color: #4a5551;
+  background: #eaf2ed;
+}
+
+hr { background: #e6eae7; }
+
+.footer {
+  color: #8a948f;
+  font-size: 12px;
+}
+
+@media (max-width: 600px) {
+  .shell {
+    width: min(100% - 24px, 920px);
+    padding-top: 12px;
+  }
+
+  .topbar {
+    gap: 12px;
+    padding: 0;
+  }
+
+  .brand span { display: none; }
+
+  .back {
+    min-height: 44px;
+    padding-inline: 14px;
+    text-align: center;
+  }
+
+  article {
+    padding: 24px 20px 36px;
+    border-radius: 20px;
+  }
+
+  h1 { font-size: 30px; }
+  p, li { font-size: 14px; line-height: 1.66; }
+}

@@ -151,14 +151,14 @@ export const CaptchaWidget: React.FC<CaptchaWidgetProps> = ({
             <div
               className={`w-7 h-7 rounded-lg border flex items-center justify-center transition-all duration-200 ${
                 isVerified
-                  ? 'bg-[#34C759] border-[#34C759] text-white shadow-sm'
-                  : 'border-slate-300 bg-white group-hover:border-[#0C8C50]'
+                  ? 'bg-[#126E4A] border-[#126E4A] text-white'
+                  : 'border-slate-300 bg-white group-hover:border-[#126E4A]'
               }`}
             >
               {isVerified ? (
                 <CheckCircle2 className="w-5 h-5 text-white" />
               ) : (
-                <div className="w-2.5 h-2.5 rounded-sm bg-transparent group-hover:bg-[#087747]/30 transition" />
+                <div className="w-2.5 h-2.5 rounded-sm bg-transparent group-hover:bg-[#126E4A]/30 transition" />
               )}
             </div>
 
