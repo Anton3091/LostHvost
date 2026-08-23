@@ -40,14 +40,14 @@ export function PwaInstallGuideModal({ onClose }: PwaInstallGuideModalProps) {
 
   return (
     <div
-      className="fixed inset-0 z-[2200] flex items-center justify-center bg-slate-900/70 p-4"
+      className="pwa-guide-backdrop fixed inset-0 z-[2200] flex items-center justify-center p-4"
       role="presentation"
       onMouseDown={event => {
         if (event.target === event.currentTarget) onClose();
       }}
     >
       <div
-        className="max-h-[calc(100dvh-2rem)] w-full max-w-lg overflow-y-auto rounded-[28px] bg-[#f5f7ef] p-5 text-slate-900 shadow-2xl sm:p-7"
+        className="pwa-guide-dialog max-h-[calc(100dvh-2rem)] w-full max-w-lg overflow-y-auto rounded-[28px] p-5 text-slate-900 sm:p-7"
         role="dialog"
         aria-modal="true"
         aria-labelledby="pwa-install-guide-title"
@@ -64,7 +64,7 @@ export function PwaInstallGuideModal({ onClose }: PwaInstallGuideModalProps) {
         </div>
 
         <header className="flex flex-col items-center text-center">
-          <span className="grid h-16 w-16 place-items-center rounded-[20px] bg-[#b7df68] text-slate-950 shadow-[0_10px_24px_rgba(93,141,20,0.18)]" aria-hidden="true">
+          <span className="pwa-guide-icon grid h-16 w-16 place-items-center rounded-[20px]" aria-hidden="true">
             <BellRing className="h-7 w-7" />
           </span>
           <h2 id="pwa-install-guide-title" className="mt-4 max-w-sm text-3xl font-extrabold leading-tight tracking-tight">
@@ -110,12 +110,12 @@ export function PwaInstallGuideModal({ onClose }: PwaInstallGuideModalProps) {
 
 function InstallStep({ icon, number, title, text }: { icon: ReactNode; number: number; title: string; text: string }) {
   return (
-    <li className="grid min-h-24 grid-cols-[48px_minmax(0,1fr)] items-center gap-3.5 rounded-[18px] border border-slate-200 bg-white px-4 py-3.5 shadow-[0_4px_16px_rgba(17,17,17,0.04)]">
-      <span className="grid h-12 w-12 place-items-center rounded-[15px] bg-slate-100 text-slate-950" aria-hidden="true">
+    <li className="pwa-guide-step grid min-h-24 grid-cols-[48px_minmax(0,1fr)] items-center gap-3.5 rounded-[18px] border border-slate-200 bg-white px-4 py-3.5">
+      <span className="pwa-guide-step-icon grid h-12 w-12 place-items-center rounded-[15px]" aria-hidden="true">
         {icon}
       </span>
       <span className="flex min-w-0 flex-col">
-        <span className="text-[10px] font-extrabold uppercase leading-tight tracking-[0.08em] text-[#547f19]">Шаг {number}</span>
+        <span className="text-[10px] font-extrabold uppercase leading-tight tracking-[0.08em] text-[#126E4A]">Шаг {number}</span>
         <strong className="mt-1 text-[15px] leading-tight">{title}</strong>
         <small className="mt-1 text-xs leading-snug text-slate-500">{text}</small>
       </span>

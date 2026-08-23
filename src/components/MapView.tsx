@@ -287,7 +287,7 @@ export const MapView: React.FC<MapViewProps> = ({
   };
 
   return (
-    <div className="map-view w-full max-w-4xl mx-auto px-4 py-4 space-y-5 text-slate-900">
+    <div className="map-view w-full max-w-4xl mx-auto px-4 py-4 text-slate-900">
       
       {/* SECTION 1: TOP NOTIFICATION SUBSCRIPTION BLOCK */}
       <section className={`subscription-card liquid-glass border border-white/80 shadow-xl ${isSubMode ? 'p-5 rounded-3xl space-y-3.5' : 'p-3.5 rounded-2xl'}`}>

@@ -178,7 +178,7 @@ export const AdDetailsModal: React.FC<AdDetailsModalProps> = ({
                 onClick={handleShare}
                 aria-label="Поделиться объявлением"
                 title="Поделиться объявлением"
-                className="w-8 h-8 rounded-full bg-slate-200/60 dark:bg-slate-800/60 text-slate-600 dark:text-slate-300 hover:bg-slate-300/80 dark:hover:bg-slate-700/80 flex items-center justify-center transition active:scale-90 cursor-pointer"
+                className="detail-toolbar-button flex items-center justify-center transition active:scale-90 cursor-pointer"
               >
                 <Share2 className="w-4 h-4" />
               </button>
@@ -186,7 +186,7 @@ export const AdDetailsModal: React.FC<AdDetailsModalProps> = ({
                 type="button"
                 onClick={onClose}
                 aria-label="Закрыть объявление"
-                className="w-8 h-8 rounded-full bg-slate-200/60 dark:bg-slate-800/60 text-slate-600 dark:text-slate-300 hover:bg-slate-300/80 dark:hover:bg-slate-700/80 flex items-center justify-center transition active:scale-90 cursor-pointer"
+                className="detail-toolbar-button flex items-center justify-center transition active:scale-90 cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -252,11 +252,11 @@ export const AdDetailsModal: React.FC<AdDetailsModalProps> = ({
             )}
 
             {/* Pet Name & Main Info */}
-            <div className="space-y-1">
+            <div className="detail-title-group space-y-1">
               <h2 className="text-2xl font-bold tracking-tight text-slate-900">
                 {ad.petName || (isLost ? 'Без клички' : 'Питомец без имени')}
               </h2>
-              <div className="flex flex-wrap items-center gap-3 text-xs text-slate-500 font-medium">
+              <div className="detail-date flex flex-wrap items-center gap-3 text-xs text-slate-500 font-medium">
                 <div className="flex items-center space-x-1.5">
                   <Calendar className="w-3.5 h-3.5 text-slate-400" />
                   <span>Опубликовано: {new Date(ad.createdAt).toLocaleString('ru-RU')}</span>
@@ -310,7 +310,7 @@ export const AdDetailsModal: React.FC<AdDetailsModalProps> = ({
             </div>
 
             {/* Phone Request / Call Action Pill */}
-            <div className="pt-2">
+            <div className="detail-actions pt-2">
               <button
                 type="button"
                 onClick={handleCopyLink}
@@ -347,7 +347,7 @@ export const AdDetailsModal: React.FC<AdDetailsModalProps> = ({
             </div>
 
             {/* Discretely placed Complaint Option */}
-            <div className="flex justify-center pt-2 pb-2">
+            <div className="detail-complaint flex justify-center pt-2 pb-2">
               <button
                 onClick={() => setShowComplaintModal(true)}
                 className="text-xs text-slate-400 hover:text-rose-500 transition flex items-center space-x-1.5 cursor-pointer py-1 px-3 rounded-full hover:bg-slate-100/50"
