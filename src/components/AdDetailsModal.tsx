@@ -132,14 +132,14 @@ export const AdDetailsModal: React.FC<AdDetailsModalProps> = ({
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-[2000] flex flex-col justify-end">
+      <div className="detail-modal fixed inset-0 z-[2000] flex flex-col justify-end">
         {/* Semi-transparent blur backdrop overlay */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           onClick={onClose}
-          className="absolute inset-0 bg-slate-950/35 backdrop-blur-sm"
+          className="app-modal-backdrop absolute inset-0 bg-slate-950/35 backdrop-blur-sm"
         />
 
         {/* Sliding Apple Liquid Glass Bottom Sheet Card */}
@@ -148,7 +148,7 @@ export const AdDetailsModal: React.FC<AdDetailsModalProps> = ({
           animate={{ y: 0 }}
           exit={{ y: '100%' }}
           transition={{ type: 'spring', damping: 28, stiffness: 300 }}
-          className="relative z-10 w-full max-w-2xl mx-auto bg-white/80 backdrop-blur-2xl border-t border-white/60 rounded-t-[36px] shadow-[0_-12px_48px_rgba(0,0,0,0.18)] max-h-[88vh] flex flex-col overflow-hidden text-slate-900"
+          className="detail-sheet relative z-10 w-full max-w-2xl mx-auto bg-white/80 backdrop-blur-2xl border-t border-white/60 rounded-t-[36px] shadow-[0_-12px_48px_rgba(0,0,0,0.18)] max-h-[88vh] flex flex-col overflow-hidden text-slate-900"
         >
           {/* iOS Bottom Sheet Drag Handle Bar */}
           <div className="w-full pt-3 pb-1 flex flex-col items-center justify-center cursor-grab active:cursor-grabbing">
@@ -156,19 +156,19 @@ export const AdDetailsModal: React.FC<AdDetailsModalProps> = ({
           </div>
 
           {/* Top Bar with Title & Close Button */}
-          <div className="flex items-center justify-between px-6 py-2.5 border-b border-slate-200/50">
+          <div className="detail-toolbar flex items-center justify-between px-6 py-2.5 border-b border-slate-200/50">
             <div className="flex items-center space-x-2.5">
               <span
-                className={`px-3 py-1 rounded-full text-[11px] font-bold tracking-wide uppercase shadow-sm ${
+                className={`ad-status-badge px-3 py-1 rounded-full text-[11px] font-bold tracking-wide uppercase shadow-sm ${
                   isLost
-                    ? 'bg-[#FF9500]/15 text-[#D97706] border border-[#FF9500]/30'
-                    : 'bg-[#34C759]/15 text-[#15803D] border border-[#34C759]/30'
+                    ? 'ad-status-lost'
+                    : 'ad-status-found'
                 }`}
               >
                 {isLost ? 'Потерялся' : 'Найден'}
               </span>
-              <span className="bg-slate-100/80 text-slate-700 text-[11px] px-3 py-1 rounded-full font-medium border border-slate-200/60">
-                {ad.category === 'cat' ? '🐱 Кошка' : ad.category === 'dog' ? '🐶 Собака' : '🐾 Питомец'}
+              <span className="ad-category-badge bg-slate-100/80 text-slate-700 text-[11px] px-3 py-1 rounded-full font-medium border border-slate-200/60">
+                {ad.category === 'cat' ? 'Кошка' : ad.category === 'dog' ? 'Собака' : 'Другое'}
               </span>
             </div>
 
@@ -200,11 +200,11 @@ export const AdDetailsModal: React.FC<AdDetailsModalProps> = ({
           )}
 
           {/* Sheet Scrollable Content */}
-          <div className="overflow-y-auto px-6 py-5 space-y-5">
+          <div className="detail-body overflow-y-auto px-6 py-5 space-y-5">
             {/* Photos Gallery */}
             {ad.photos && ad.photos.length > 0 && (
               <div className="space-y-3">
-                <div className="relative aspect-[4/3] w-full rounded-3xl overflow-hidden bg-slate-100 border border-white/60 shadow-sm">
+                <div className="detail-photo relative aspect-[4/3] w-full rounded-3xl overflow-hidden bg-slate-100 border border-white/60 shadow-sm">
                   <img
                     src={ad.photos[activePhotoIdx]}
                     alt="Фото питомца"
@@ -239,7 +239,7 @@ export const AdDetailsModal: React.FC<AdDetailsModalProps> = ({
                         onClick={() => setActivePhotoIdx(idx)}
                         className={`w-14 h-14 rounded-2xl overflow-hidden border-2 transition cursor-pointer flex-shrink-0 ${
                           activePhotoIdx === idx
-                            ? 'border-[#0C8C50] scale-105 shadow-md'
+                            ? 'border-[#126E4A] scale-105 shadow-md'
                             : 'border-transparent opacity-60 hover:opacity-100'
                         }`}
                       >
@@ -265,7 +265,7 @@ export const AdDetailsModal: React.FC<AdDetailsModalProps> = ({
             </div>
 
             {/* Description Box with Apple Liquid Glass Card */}
-            <div className="liquid-glass-card p-4 rounded-3xl space-y-1.5">
+            <div className="detail-description liquid-glass-card p-4 rounded-3xl space-y-1.5">
               <h3 className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
                 Описание и приметы
               </h3>
@@ -275,8 +275,8 @@ export const AdDetailsModal: React.FC<AdDetailsModalProps> = ({
             </div>
 
             {/* Location Pill */}
-            <div className="liquid-glass-card p-3.5 rounded-2xl flex items-center space-x-3 text-xs text-slate-700">
-              <div className="w-8 h-8 rounded-full bg-[#087747]/10 text-[#0C8C50] flex items-center justify-center flex-shrink-0">
+            <div className="detail-location liquid-glass-card p-3.5 rounded-2xl flex items-center space-x-3 text-xs text-slate-700">
+              <div className="w-8 h-8 rounded-full bg-[#126E4A]/10 text-[#126E4A] flex items-center justify-center flex-shrink-0">
                 <MapPin className="w-4 h-4" />
               </div>
               <div className="flex-1 min-w-0">
@@ -314,7 +314,7 @@ export const AdDetailsModal: React.FC<AdDetailsModalProps> = ({
               <button
                 type="button"
                 onClick={handleCopyLink}
-                className="mb-3 w-full rounded-2xl border border-[#0C8C50] bg-slate-100/80 px-5 py-3.5 text-sm font-semibold text-[#087747] transition hover:bg-slate-200/80 active:scale-[0.99] cursor-pointer"
+                className="button-secondary mb-3 w-full rounded-2xl border border-[#126E4A] bg-white px-5 py-3.5 text-sm font-semibold text-[#126E4A] transition hover:bg-[#EAF2ED] active:scale-[0.99] cursor-pointer"
               >
                 Скопировать ссылку
               </button>
@@ -329,7 +329,7 @@ export const AdDetailsModal: React.FC<AdDetailsModalProps> = ({
                   </div>
                   <a
                     href={`tel:${phone}`}
-                    className="w-full bg-[#34C759] hover:bg-emerald-600 text-white font-semibold py-3 px-4 rounded-2xl shadow-lg shadow-emerald-500/20 transition flex items-center justify-center space-x-2 text-sm"
+                    className="w-full bg-[#126E4A] hover:bg-[#0D5638] text-white font-semibold py-3 px-4 rounded-2xl transition flex items-center justify-center space-x-2 text-sm"
                   >
                     <Phone className="w-4 h-4 fill-current" />
                     <span>Позвонить</span>
@@ -338,7 +338,7 @@ export const AdDetailsModal: React.FC<AdDetailsModalProps> = ({
               ) : (
                 <button
                   onClick={handleStartPhoneRequest}
-                  className="w-full bg-[#087747] hover:bg-[#06683D] text-white font-semibold py-3.5 px-5 rounded-2xl shadow-lg shadow-emerald-700/20 transition active:scale-[0.99] flex items-center justify-center space-x-2 text-sm cursor-pointer"
+                  className="button-primary w-full bg-[#126E4A] hover:bg-[#0D5638] text-white font-semibold py-3.5 px-5 rounded-2xl transition active:scale-[0.99] flex items-center justify-center space-x-2 text-sm cursor-pointer"
                 >
                   <Phone className="w-4 h-4" />
                   <span>Показать контакты</span>
@@ -387,7 +387,7 @@ export const AdDetailsModal: React.FC<AdDetailsModalProps> = ({
               <button
                 disabled={!phoneCaptchaToken || phoneLoading}
                 onClick={handleConfirmPhoneRequest}
-                className="flex-1 bg-[#087747] hover:bg-[#06683D] disabled:opacity-50 text-white font-medium py-2.5 rounded-2xl text-xs transition cursor-pointer"
+                className="flex-1 bg-[#126E4A] hover:bg-[#0D5638] disabled:opacity-50 text-white font-medium py-2.5 rounded-2xl text-xs transition cursor-pointer"
               >
                 {phoneLoading ? 'Загрузка...' : 'Подтвердить и открыть номер'}
               </button>

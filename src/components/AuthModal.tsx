@@ -106,14 +106,14 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-[2200] flex items-center justify-center p-4">
+      <div className="auth-modal fixed inset-0 z-[2200] flex items-center justify-center p-4">
         {/* Backdrop */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           onClick={onClose}
-          className="fixed inset-0 bg-slate-950/40 backdrop-blur-md"
+          className="app-modal-backdrop fixed inset-0 bg-slate-950/40 backdrop-blur-md"
         />
 
         {/* Modal */}
@@ -122,7 +122,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 10 }}
           transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-          className="relative z-10 liquid-glass w-full max-w-md rounded-3xl p-6 shadow-2xl space-y-4 text-slate-900"
+          className="auth-dialog relative z-10 liquid-glass w-full max-w-md rounded-3xl p-6 shadow-2xl space-y-4 text-slate-900"
         >
           <button
             type="button"
@@ -247,10 +247,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                     required
                     checked={personalDataConsent}
                     onChange={e => setPersonalDataConsent(e.target.checked)}
-                    className="mt-0.5 rounded border-slate-300 text-[#0C8C50] focus:ring-[#0C8C50] w-4 h-4 cursor-pointer accent-[#0C8C50]"
+                    className="mt-0.5 rounded border-slate-300 text-[#126E4A] focus:ring-[#126E4A] w-4 h-4 cursor-pointer accent-[#126E4A]"
                   />
                   <span className="leading-snug text-[11px]">
-                    Я даю <a href={LEGAL_DOCUMENT_PATHS.personalDataConsent} target="_blank" rel="noopener noreferrer" className="text-[#0C8C50] underline font-medium">согласие на обработку персональных данных</a>
+                    Я даю <a href={LEGAL_DOCUMENT_PATHS.personalDataConsent} target="_blank" rel="noopener noreferrer" className="text-[#126E4A] underline font-medium">согласие на обработку персональных данных</a>
                   </span>
                 </label>
                 <label className="flex items-start space-x-2.5 text-xs text-slate-600 cursor-pointer select-none">
@@ -259,10 +259,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                     required
                     checked={termsAccepted}
                     onChange={e => setTermsAccepted(e.target.checked)}
-                    className="mt-0.5 rounded border-slate-300 text-[#0C8C50] focus:ring-[#0C8C50] w-4 h-4 cursor-pointer accent-[#0C8C50]"
+                    className="mt-0.5 rounded border-slate-300 text-[#126E4A] focus:ring-[#126E4A] w-4 h-4 cursor-pointer accent-[#126E4A]"
                   />
                   <span className="leading-snug text-[11px]">
-                    Я принимаю <a href={LEGAL_DOCUMENT_PATHS.terms} target="_blank" rel="noopener noreferrer" className="text-[#0C8C50] underline font-medium">Пользовательское соглашение</a>
+                    Я принимаю <a href={LEGAL_DOCUMENT_PATHS.terms} target="_blank" rel="noopener noreferrer" className="text-[#126E4A] underline font-medium">Пользовательское соглашение</a>
                   </span>
                 </label>
               </div>
@@ -276,7 +276,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             <button
               type="submit"
               disabled={loading || !captchaToken || (mode === 'register' && !registrationAllowed)}
-              className="w-full h-11 bg-[#087747] hover:bg-[#06683D] disabled:opacity-50 text-white font-semibold rounded-xl text-sm shadow-md shadow-emerald-700/20 transition cursor-pointer"
+              className="w-full h-11 bg-[#126E4A] hover:bg-[#0D5638] disabled:opacity-50 text-white font-semibold rounded-xl text-sm transition cursor-pointer"
             >
               {loading
                 ? 'Загрузка...'
@@ -314,7 +314,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               </button>
               <button
                 onClick={() => { setMode('register'); setError(null); setCaptchaToken(''); }}
-                className="inline-flex min-h-9 items-center justify-center rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-sm font-semibold text-[#0C8C50] shadow-sm shadow-emerald-700/10 transition hover:bg-emerald-100 hover:shadow-md cursor-pointer"
+                className="inline-flex min-h-9 items-center justify-center rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-sm font-semibold text-[#126E4A] transition hover:bg-emerald-100 cursor-pointer"
               >
                 Регистрация
               </button>
@@ -322,7 +322,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           ) : (
             <button
               onClick={() => { setMode('login'); setError(null); setCaptchaToken(''); }}
-              className="text-[#0C8C50] font-semibold hover:underline cursor-pointer mx-auto"
+              className="text-[#126E4A] font-semibold hover:underline cursor-pointer mx-auto"
             >
               Уже есть аккаунт? Войти
             </button>

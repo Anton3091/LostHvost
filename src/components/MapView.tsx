@@ -172,8 +172,8 @@ export const MapView: React.FC<MapViewProps> = ({
       // Draw Radius Circle
       subCircleLayer.current = L.circle([activeLat, activeLng], {
         radius: activeRadius,
-        color: '#0C8C50',
-        fillColor: '#0C8C50',
+        color: '#126E4A',
+        fillColor: '#126E4A',
         fillOpacity: 0.15,
         weight: 2,
         dashArray: '6, 6'
@@ -183,8 +183,8 @@ export const MapView: React.FC<MapViewProps> = ({
       const centerIcon = L.divIcon({
         className: 'sub-center-pin',
         html: `
-          <div style="background: #0C8C50; width: 28px; height: 28px; border-radius: 50%; border: 3px solid white; display: flex; align-items: center; justify-content: center; color: white; box-shadow: 0 4px 12px rgba(12,140,80,0.4);">
-            📍
+          <div style="background: #126E4A; width: 28px; height: 28px; border-radius: 50%; border: 3px solid white; display: flex; align-items: center; justify-content: center; color: white; box-shadow: 0 4px 12px rgba(16,22,20,0.2);">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="white" stroke-width="2"><path d="M12 21s7-6.3 7-11a7 7 0 1 0-14 0c0 4.7 7 11 7 11z"/><circle cx="12" cy="10" r="2.4"/></svg>
           </div>
         `,
         iconSize: [28, 28],
@@ -287,14 +287,14 @@ export const MapView: React.FC<MapViewProps> = ({
   };
 
   return (
-    <div className="w-full max-w-4xl mx-auto px-4 py-4 space-y-5 text-slate-900">
+    <div className="map-view w-full max-w-4xl mx-auto px-4 py-4 space-y-5 text-slate-900">
       
       {/* SECTION 1: TOP NOTIFICATION SUBSCRIPTION BLOCK */}
-      <section className={`liquid-glass border border-white/80 shadow-xl ${isSubMode ? 'p-5 rounded-3xl space-y-3.5' : 'p-3.5 rounded-2xl'}`}>
+      <section className={`subscription-card liquid-glass border border-white/80 shadow-xl ${isSubMode ? 'p-5 rounded-3xl space-y-3.5' : 'p-3.5 rounded-2xl'}`}>
         {subscriptionSaved ? (
           <div className="space-y-3">
             <div className="flex items-center space-x-2.5">
-              <div className="w-9 h-9 rounded-2xl bg-[#087747]/15 text-[#0C8C50] flex items-center justify-center font-semibold">
+              <div className="w-9 h-9 rounded-2xl bg-[#126E4A]/15 text-[#126E4A] flex items-center justify-center font-semibold">
                 <Check className="w-5 h-5" />
               </div>
               <div>
@@ -322,11 +322,11 @@ export const MapView: React.FC<MapViewProps> = ({
                     setTestNotificationSending(false);
                   }
                 }}
-                className="w-full bg-[#087747] hover:bg-[#06683D] disabled:opacity-60 text-white font-semibold py-2.5 rounded-2xl text-xs transition cursor-pointer disabled:cursor-wait"
+                className="w-full bg-[#126E4A] hover:bg-[#0D5638] disabled:opacity-60 text-white font-semibold py-2.5 rounded-2xl text-xs transition cursor-pointer disabled:cursor-wait"
               >
                 {testNotificationSending ? 'Отправляем…' : 'Тестовое уведомление'}
               </button>
-              {testNotificationMessage ? <p className={`text-center text-[11px] font-medium ${testNotificationMessage === 'Тестовое уведомление отправлено' ? 'text-[#087747]' : 'text-rose-600'}`} role="status">{testNotificationMessage}</p> : null}
+              {testNotificationMessage ? <p className={`text-center text-[11px] font-medium ${testNotificationMessage === 'Тестовое уведомление отправлено' ? 'text-[#126E4A]' : 'text-rose-600'}`} role="status">{testNotificationMessage}</p> : null}
             </div>
             <button
               type="button"
@@ -338,7 +338,7 @@ export const MapView: React.FC<MapViewProps> = ({
           </div>
         ) : !isSubMode ? (
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-xl bg-[#087747]/15 text-[#0C8C50] flex items-center justify-center flex-shrink-0">
+            <div className="w-8 h-8 rounded-xl bg-[#126E4A]/15 text-[#126E4A] flex items-center justify-center flex-shrink-0">
               <Bell className="w-4 h-4" />
             </div>
             <div className="min-w-0 flex-1">
@@ -349,7 +349,7 @@ export const MapView: React.FC<MapViewProps> = ({
             </div>
             <button
               onClick={toggleSubMode}
-              className="bg-[#087747] hover:bg-[#06683D] text-white text-xs font-semibold px-3 py-2 rounded-xl shadow-md shadow-emerald-700/20 transition active:scale-95 cursor-pointer flex items-center gap-1.5 flex-shrink-0"
+              className="bg-[#126E4A] hover:bg-[#0D5638] text-white text-xs font-semibold px-3 py-2 rounded-xl transition active:scale-95 cursor-pointer flex items-center gap-1.5 flex-shrink-0"
             >
               {geoSubscription?.isActive && <Check className="w-3.5 h-3.5" />}
               <span>{geoSubscription?.isActive ? 'Изменить' : 'Настроить'}</span>
@@ -368,7 +368,7 @@ export const MapView: React.FC<MapViewProps> = ({
         ) : (
           <>
             <div className="flex items-center space-x-2.5">
-              <div className="w-9 h-9 rounded-2xl bg-[#087747]/15 text-[#0C8C50] flex items-center justify-center font-semibold">
+              <div className="w-9 h-9 rounded-2xl bg-[#126E4A]/15 text-[#126E4A] flex items-center justify-center font-semibold">
                 <Bell className="w-5 h-5" />
               </div>
               <div>
@@ -378,9 +378,9 @@ export const MapView: React.FC<MapViewProps> = ({
             </div>
             <div className="space-y-3.5 pt-2 bg-white/40 p-4 rounded-2xl border border-white/50">
             <div className="flex items-center justify-between text-xs font-semibold text-slate-700">
-              <div className="flex items-center space-x-1.5 text-[#0C8C50]">
+              <div className="flex items-center space-x-1.5 text-[#126E4A]">
                 <MapPin className="w-4 h-4" />
-                <span>Радиус зоны: <strong className="text-[#0C8C50]">{formatSubscriptionRadius(subRadius)}</strong></span>
+                <span>Радиус зоны: <strong className="text-[#126E4A]">{formatSubscriptionRadius(subRadius)}</strong></span>
               </div>
               <span className="text-[11px] text-slate-400 text-right">Перетащите маркер на карте ниже</span>
             </div>
@@ -393,7 +393,7 @@ export const MapView: React.FC<MapViewProps> = ({
                   onClick={() => setSubRadius(r)}
                   className={`py-1.5 text-xs font-semibold rounded-xl border transition cursor-pointer ${
                     subRadius === r
-                      ? 'bg-[#087747] text-white border-[#0C8C50] shadow-md shadow-emerald-700/20'
+                      ? 'bg-[#126E4A] text-white border-[#126E4A]'
                       : 'border-white/60 bg-white/60 text-slate-700 hover:bg-white'
                   }`}
                 >
@@ -412,7 +412,7 @@ export const MapView: React.FC<MapViewProps> = ({
               <button
                 onClick={handleSaveSub}
                 disabled={subscriptionSaving}
-                className="flex-1 bg-[#087747] hover:bg-[#06683D] text-white font-semibold py-2.5 rounded-2xl text-xs flex items-center justify-center space-x-1.5 shadow-md transition cursor-pointer"
+                className="flex-1 bg-[#126E4A] hover:bg-[#0D5638] text-white font-semibold py-2.5 rounded-2xl text-xs flex items-center justify-center space-x-1.5 transition cursor-pointer"
               >
                 {subscriptionSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
                 <span>{subscriptionSaving ? 'Сохраняем…' : `Сохранить подписку (${formatSubscriptionRadius(subRadius)})`}</span>
@@ -432,14 +432,14 @@ export const MapView: React.FC<MapViewProps> = ({
       {showPwaInstallGuide && <PwaInstallGuideModal onClose={() => setShowPwaInstallGuide(false)} />}
 
       {/* SECTION 2: MIDDLE MAP SECTION (INTEGRATED MAP CONTAINER) */}
-      <section data-pull-refresh-ignore="true" className="relative w-full h-[360px] rounded-3xl overflow-hidden shadow-xl border border-white/70 liquid-glass">
+      <section data-pull-refresh-ignore="true" className="map-panel relative w-full h-[360px] rounded-3xl overflow-hidden shadow-xl border border-white/70 liquid-glass">
         {/* Map Canvas */}
         <div ref={mapRef} className="w-full h-full z-0" />
 
         {/* Legend Overlay Pill (Top-Left) */}
-        <div className="absolute top-3.5 left-3.5 z-[1000] liquid-glass px-3.5 py-2 rounded-full flex items-center space-x-3 text-xs font-medium text-slate-800 shadow-md">
+        <div className="map-legend absolute top-3.5 left-3.5 z-[1000] liquid-glass px-3.5 py-2 rounded-full flex items-center space-x-3 text-xs font-medium text-slate-800 shadow-md">
           <div className="flex items-center space-x-1.5">
-            <span className="w-2.5 h-2.5 rounded-full bg-[#e53935] ring-2 ring-white shadow-sm" />
+            <span className="w-2.5 h-2.5 rounded-full bg-[#B4471F] ring-2 ring-white shadow-sm" />
             <span className="text-[11px] font-semibold">Потерян</span>
           </div>
           <span className="text-slate-300">|</span>
@@ -457,7 +457,7 @@ export const MapView: React.FC<MapViewProps> = ({
             disabled={locationLoading}
             title={locationLoading ? 'Определяем местоположение' : 'Моё местоположение'}
             aria-label={locationLoading ? 'Определяем местоположение' : 'Моё местоположение'}
-            className="w-12 h-12 bg-[#087747] border-2 border-white/90 text-white rounded-full flex items-center justify-center hover:bg-[#06683D] hover:scale-105 active:scale-95 transition shadow-[0_8px_20px_rgba(8,119,71,0.42)] cursor-pointer disabled:opacity-60 disabled:cursor-wait"
+            className="w-12 h-12 bg-[#126E4A] border-2 border-white/90 text-white rounded-full flex items-center justify-center hover:bg-[#0D5638] hover:scale-105 active:scale-95 transition shadow-[0_10px_30px_rgba(16,22,20,0.10)] cursor-pointer disabled:opacity-60 disabled:cursor-wait"
           >
             <Locate className={`w-5 h-5 text-white ${locationLoading ? 'animate-pulse' : ''}`} />
           </button>
@@ -465,7 +465,7 @@ export const MapView: React.FC<MapViewProps> = ({
       </section>
 
       {/* SECTION 3: BOTTOM PETS LIST SECTION */}
-      <section className="space-y-4 pt-2">
+      <section className="ads-section space-y-4 pt-2">
         {/* Header with Search and Filter controls */}
         <div className="flex flex-col space-y-3">
           <div className="flex items-center justify-between">
@@ -473,7 +473,7 @@ export const MapView: React.FC<MapViewProps> = ({
               <h3 className="text-base font-bold text-slate-900">
                 Питомцы на карте
               </h3>
-              <span className="px-2.5 py-0.5 rounded-full bg-[#087747]/15 text-[#0C8C50] text-xs font-bold">
+              <span className="px-2.5 py-0.5 rounded-full bg-[#126E4A]/15 text-[#126E4A] text-xs font-bold">
                 {adsLoading ? '…' : ads.length}
               </span>
             </div>
@@ -487,7 +487,7 @@ export const MapView: React.FC<MapViewProps> = ({
         {/* Pet Cards List */}
         {adsCollectionState === 'loading' ? (
           <div className="liquid-glass p-8 rounded-3xl text-center space-y-3" role="status">
-            <Loader2 className="w-5 h-5 mx-auto animate-spin text-[#0C8C50]" />
+            <Loader2 className="w-5 h-5 mx-auto animate-spin text-[#126E4A]" />
             <p className="text-sm font-semibold text-slate-600">
               Загружаем объявления…
             </p>
@@ -502,14 +502,14 @@ export const MapView: React.FC<MapViewProps> = ({
             </p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+          <div className="ads-list grid grid-cols-1 md:grid-cols-2 gap-3.5">
             {ads.map(ad => {
               const isLost = ad.type === 'lost';
               return (
                 <div
                   key={ad.id}
                   onClick={() => onSelectAd(ad)}
-                  className="liquid-glass-card p-3.5 rounded-3xl flex items-center space-x-3.5 border border-white/70 active:scale-[0.97] active:bg-slate-200/50 transition-all duration-200 cursor-pointer shadow-sm group"
+                  className="ad-list-card liquid-glass-card p-3.5 rounded-3xl flex items-center space-x-3.5 border border-white/70 active:scale-[0.97] active:bg-slate-200/50 transition-all duration-200 cursor-pointer shadow-sm group"
                 >
                   {/* Thumbnail photo */}
                   <div className="relative w-20 h-20 rounded-2xl overflow-hidden bg-slate-100 flex-shrink-0 shadow-sm border border-black/5">
@@ -518,24 +518,22 @@ export const MapView: React.FC<MapViewProps> = ({
                       alt={ad.petName || 'Питомец'}
                       className="w-full h-full object-cover group-active:scale-105 transition-transform duration-300"
                     />
-                    <span
-                      className={`absolute top-1 left-1 px-1.5 py-0.5 rounded-md text-[9px] font-bold tracking-tight text-white ${
-                        isLost ? 'bg-[#e53935]' : 'bg-[#2563eb]'
-                      }`}
-                    >
-                      {isLost ? 'ПОТЕРЯЛСЯ' : 'НАЙДЕН'}
-                    </span>
                   </div>
 
                   {/* Info details */}
                   <div className="flex-1 min-w-0 space-y-1">
+                    <div className="ad-card-badges flex items-center gap-2">
+                      <span className={`ad-status-badge ${isLost ? 'ad-status-lost' : 'ad-status-found'}`}>
+                        {isLost ? 'ПОТЕРЯН' : 'НАЙДЕН'}
+                      </span>
+                      <span className="ad-category-badge">
+                        {ad.category === 'cat' ? 'Кошка' : ad.category === 'dog' ? 'Собака' : 'Другое'}
+                      </span>
+                    </div>
                     <div className="flex items-center justify-between">
                       <h4 className="text-sm font-bold text-slate-900 truncate">
                         {ad.petName || 'Питомец без имени'}
                       </h4>
-                      <span className="text-[11px] text-slate-400 font-medium">
-                        {ad.category === 'cat' ? '🐱 Кошка' : ad.category === 'dog' ? '🐶 Собака' : '🐾 Другое'}
-                      </span>
                     </div>
 
                     <p className="text-xs text-slate-500 line-clamp-2 leading-snug">
@@ -544,7 +542,7 @@ export const MapView: React.FC<MapViewProps> = ({
 
                     <div className="flex items-center space-x-3 text-[10px] text-slate-400 font-medium pt-0.5">
                       <div className="flex items-center space-x-1 truncate">
-                        <MapPin className="w-3 h-3 text-[#0C8C50] flex-shrink-0" />
+                        <MapPin className="w-3 h-3 text-[#126E4A] flex-shrink-0" />
                         <span className="truncate">{ad.lat.toFixed(4)}, {ad.lng.toFixed(4)}</span>
                       </div>
                       <span>•</span>
@@ -553,7 +551,7 @@ export const MapView: React.FC<MapViewProps> = ({
                   </div>
 
                   {/* Chevron Right */}
-                  <div className="w-7 h-7 rounded-full bg-slate-100/80 text-slate-400 group-hover:text-[#0C8C50] group-hover:bg-[#087747]/10 flex items-center justify-center transition flex-shrink-0">
+                  <div className="w-7 h-7 rounded-full bg-slate-100/80 text-slate-400 group-hover:text-[#126E4A] group-hover:bg-[#126E4A]/10 flex items-center justify-center transition flex-shrink-0">
                     <ChevronRight className="w-4 h-4" />
                   </div>
                 </div>
@@ -574,7 +572,7 @@ export const MapView: React.FC<MapViewProps> = ({
             >
               <X className="w-4 h-4" />
             </button>
-            <div className="w-11 h-11 rounded-2xl bg-[#087747]/15 text-[#0C8C50] flex items-center justify-center">
+            <div className="w-11 h-11 rounded-2xl bg-[#126E4A]/15 text-[#126E4A] flex items-center justify-center">
               <Settings className="w-5 h-5" />
             </div>
             <div className="space-y-1.5 pr-8">
@@ -593,7 +591,7 @@ export const MapView: React.FC<MapViewProps> = ({
                 type="button"
                 onClick={handleGetLocation}
                 disabled={locationLoading}
-                className="w-full h-11 rounded-2xl bg-[#087747] text-white text-sm font-semibold disabled:opacity-60"
+                className="w-full h-11 rounded-2xl bg-[#126E4A] text-white text-sm font-semibold disabled:opacity-60"
               >
                 Запросить ещё раз
               </button>

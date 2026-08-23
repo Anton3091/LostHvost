@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import L from 'leaflet';
-import { ArrowLeft, ArrowRight, Upload, Trash2, Locate, Sparkles, CheckCircle2, AlertCircle, Phone, X } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Upload, Trash2, Locate, Sparkles, CheckCircle2, AlertCircle, Phone, X, Search, Home, Cat, Dog, PawPrint } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { AdType, AdCategory } from '../types';
 import { CaptchaWidget } from './CaptchaWidget';
@@ -14,6 +14,12 @@ interface CreateAdWizardProps {
   onReportIssue: (ad: any, requestId?: string) => void;
   prefillData?: any;
 }
+
+const categoryOptions = [
+  { id: 'cat' as const, label: 'Кошка', Icon: Cat },
+  { id: 'dog' as const, label: 'Собака', Icon: Dog },
+  { id: 'other' as const, label: 'Другое', Icon: PawPrint }
+];
 
 export const CreateAdWizard: React.FC<CreateAdWizardProps> = ({
   onClose,
@@ -167,7 +173,7 @@ export const CreateAdWizard: React.FC<CreateAdWizardProps> = ({
 
       const pinIcon = L.divIcon({
         className: 'pin-picker-marker',
-        html: `<div style="background: #0C8C50; width: 32px; height: 32px; border-radius: 50%; border: 3px solid white; color: white; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(0,0,0,0.3); font-size: 16px;">📍</div>`,
+        html: `<div style="background: #126E4A; width: 32px; height: 32px; border-radius: 50%; border: 3px solid white; color: white; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(16,22,20,0.2);"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="white" stroke-width="2"><path d="M12 21s7-6.3 7-11a7 7 0 1 0-14 0c0 4.7 7 11 7 11z"/><circle cx="12" cy="10" r="2.4"/></svg></div>`,
         iconSize: [32, 32],
         iconAnchor: [16, 16]
       });
@@ -255,14 +261,14 @@ export const CreateAdWizard: React.FC<CreateAdWizardProps> = ({
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-[2000] flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+      <div className="wizard-modal fixed inset-0 z-[2000] flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
         {/* Backdrop */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           onClick={onClose}
-          className="fixed inset-0 bg-slate-950/40 backdrop-blur-md"
+          className="app-modal-backdrop fixed inset-0 bg-slate-950/40 backdrop-blur-md"
         />
 
         {/* Modal Content */}
@@ -271,17 +277,17 @@ export const CreateAdWizard: React.FC<CreateAdWizardProps> = ({
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 10 }}
           transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-          className="relative z-10 liquid-glass w-full max-w-lg rounded-3xl overflow-hidden my-auto flex flex-col max-h-[92vh] text-slate-900 shadow-2xl"
+          className="wizard-sheet relative z-10 liquid-glass w-full max-w-lg rounded-3xl overflow-hidden my-auto flex flex-col max-h-[92vh] text-slate-900 shadow-2xl"
         >
           {/* Header */}
-        <div className="p-4 border-b border-slate-200/50 flex items-center justify-between">
+        <div className="wizard-header p-4 border-b border-slate-200/50 flex items-center justify-between">
           <div>
             <h2 className="text-base font-bold">
               Новое объявление ({step} из 5)
             </h2>
             <div className="w-48 bg-slate-200/60 h-1.5 rounded-full overflow-hidden mt-1">
               <div
-                className="bg-[#087747] h-full transition-all duration-300"
+                className="bg-[#126E4A] h-full transition-all duration-300"
                 style={{ width: `${(step / 5) * 100}%` }}
               />
             </div>
@@ -296,7 +302,7 @@ export const CreateAdWizard: React.FC<CreateAdWizardProps> = ({
         </div>
 
         {/* Wizard Body */}
-        <div className="p-5 overflow-y-auto space-y-4">
+        <div className="wizard-body p-5 overflow-y-auto space-y-4">
           {error && (
             <div className="p-3 bg-rose-50 text-rose-600 text-xs rounded-xl flex items-center space-x-2 border border-rose-200">
               <AlertCircle className="w-4 h-4 flex-shrink-0" />
@@ -310,17 +316,18 @@ export const CreateAdWizard: React.FC<CreateAdWizardProps> = ({
               <h3 className="text-sm font-semibold text-slate-800">
                 Шаг 1: Укажите тип объявления
               </h3>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="wizard-choice-grid grid grid-cols-2 gap-3">
                 <button
                   type="button"
                   onClick={() => setType('lost')}
-                  className={`p-4 rounded-xl border-2 text-center transition cursor-pointer ${
+                  aria-pressed={type === 'lost'}
+                  className={`wizard-choice p-4 rounded-xl border-2 text-center transition cursor-pointer ${
                     type === 'lost'
                       ? 'border-orange-500 bg-orange-50 text-orange-800 font-bold'
                       : 'border-slate-200 bg-slate-50 text-slate-700'
                   }`}
                 >
-                  <span className="text-2xl block mb-1">🔍</span>
+                  <Search className="wizard-choice-icon" aria-hidden="true" />
                   <span className="text-sm">ПОТЕРЯЛ</span>
                   <p className="text-[11px] font-normal text-slate-500 mt-1">
                     Мой питомец убежал или потерялся
@@ -330,13 +337,14 @@ export const CreateAdWizard: React.FC<CreateAdWizardProps> = ({
                 <button
                   type="button"
                   onClick={() => setType('found')}
-                  className={`p-4 rounded-xl border-2 text-center transition cursor-pointer ${
+                  aria-pressed={type === 'found'}
+                  className={`wizard-choice p-4 rounded-xl border-2 text-center transition cursor-pointer ${
                     type === 'found'
                       ? 'border-emerald-500 bg-emerald-50 text-emerald-800 font-bold'
                       : 'border-slate-200 bg-slate-50 text-slate-700'
                   }`}
                 >
-                  <span className="text-2xl block mb-1">🏠</span>
+                  <Home className="wizard-choice-icon" aria-hidden="true" />
                   <span className="text-sm">НАШЁЛ</span>
                   <p className="text-[11px] font-normal text-slate-500 mt-1">
                     Я нашел чужого питомца
@@ -352,24 +360,21 @@ export const CreateAdWizard: React.FC<CreateAdWizardProps> = ({
               <h3 className="text-sm font-semibold text-slate-800">
                 Шаг 2: Выберите категорию животного
               </h3>
-              <div className="grid grid-cols-3 gap-3">
-                {[
-                  { id: 'cat', label: 'Кошка', icon: '🐱' },
-                  { id: 'dog', label: 'Собака', icon: '🐶' },
-                  { id: 'other', label: 'Другое', icon: '🐾' }
-                ].map(item => (
+              <div className="wizard-choice-grid wizard-category-grid grid grid-cols-3 gap-3">
+                {categoryOptions.map(({ id, label, Icon }) => (
                   <button
-                    key={item.id}
+                    key={id}
                     type="button"
-                    onClick={() => setCategory(item.id as AdCategory)}
-                    className={`p-4 rounded-xl border-2 text-center transition cursor-pointer ${
-                      category === item.id
-                        ? 'border-[#0C8C50] bg-emerald-50 text-[#0C8C50] font-bold'
+                    onClick={() => setCategory(id as AdCategory)}
+                    aria-pressed={category === id}
+                    className={`wizard-choice p-4 rounded-xl border-2 text-center transition cursor-pointer ${
+                      category === id
+                        ? 'border-[#126E4A] bg-emerald-50 text-[#126E4A] font-bold'
                         : 'border-slate-200 bg-slate-50 text-slate-700'
                     }`}
                   >
-                    <span className="text-2xl block mb-1">{item.icon}</span>
-                    <span className="text-xs">{item.label}</span>
+                    <Icon className="wizard-choice-icon" aria-hidden="true" />
+                    <span className="text-xs">{label}</span>
                   </button>
                 ))}
               </div>
@@ -401,7 +406,7 @@ export const CreateAdWizard: React.FC<CreateAdWizardProps> = ({
                 ))}
 
                 {photos.length < 3 && (
-                  <label className="aspect-square rounded-xl border-2 border-dashed border-slate-300 hover:border-[#0C8C50] flex flex-col items-center justify-center p-2 text-center cursor-pointer transition bg-slate-50">
+                  <label className="aspect-square rounded-xl border-2 border-dashed border-slate-300 hover:border-[#126E4A] flex flex-col items-center justify-center p-2 text-center cursor-pointer transition bg-slate-50">
                     <Upload className="w-6 h-6 text-slate-400 mb-1" />
                     <span className="text-[11px] font-medium text-slate-600">
                       Добавить фото
@@ -429,7 +434,7 @@ export const CreateAdWizard: React.FC<CreateAdWizardProps> = ({
                   value={petName}
                   onChange={e => setPetName(e.target.value)}
                   placeholder={type === 'lost' ? 'Например: Барсик' : 'Например: Мухтар (если есть ошейник)'}
-                  className="w-full border border-slate-200 rounded-xl p-2.5 text-xs bg-slate-50 text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#0C8C50]"
+                  className="w-full border border-slate-200 rounded-xl p-2.5 text-xs bg-slate-50 text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#126E4A]"
                 />
               </div>
 
@@ -442,7 +447,7 @@ export const CreateAdWizard: React.FC<CreateAdWizardProps> = ({
                   value={description}
                   onChange={e => setDescription(e.target.value)}
                   placeholder="Опишите окрас, породу, ошейник, состояние здоровья, где виден питомец..."
-                  className="w-full border border-slate-200 rounded-xl p-2.5 text-xs bg-slate-50 text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#0C8C50]"
+                  className="w-full border border-slate-200 rounded-xl p-2.5 text-xs bg-slate-50 text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#126E4A]"
                 />
               </div>
 
@@ -455,7 +460,7 @@ export const CreateAdWizard: React.FC<CreateAdWizardProps> = ({
                   value={contactName}
                   onChange={e => setContactName(e.target.value)}
                   placeholder="Ваше имя"
-                  className="w-full border border-slate-200 rounded-xl p-2.5 text-xs bg-slate-50 text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#0C8C50]"
+                  className="w-full border border-slate-200 rounded-xl p-2.5 text-xs bg-slate-50 text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#126E4A]"
                 />
               </div>
 
@@ -472,7 +477,7 @@ export const CreateAdWizard: React.FC<CreateAdWizardProps> = ({
                     value={phone}
                     onChange={e => handlePhoneChange(e.target.value)}
                     placeholder="+7 (916) 123-45-67"
-                    className="w-full border border-slate-200 rounded-xl p-2.5 pl-9 text-xs font-mono bg-slate-50 text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#0C8C50]"
+                    className="w-full border border-slate-200 rounded-xl p-2.5 pl-9 text-xs font-mono bg-slate-50 text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#126E4A]"
                   />
                 </div>
                 <p className="text-[11px] text-slate-400">
@@ -502,7 +507,7 @@ export const CreateAdWizard: React.FC<CreateAdWizardProps> = ({
                   aria-label={locationLoading ? 'Определяем местоположение' : 'Моё местоположение'}
                   className="absolute bottom-20 right-2 z-[1000] w-9 h-9 liquid-glass text-slate-800 rounded-full flex items-center justify-center shadow-md cursor-pointer disabled:opacity-60 disabled:cursor-wait"
                 >
-                  <Locate className={`w-4 h-4 text-[#0C8C50] ${locationLoading ? 'animate-pulse' : ''}`} />
+                  <Locate className={`w-4 h-4 text-[#126E4A] ${locationLoading ? 'animate-pulse' : ''}`} />
                 </button>
               </div>
 
@@ -537,7 +542,7 @@ export const CreateAdWizard: React.FC<CreateAdWizardProps> = ({
                   <button
                     disabled={!captchaToken || isSubmitting}
                     onClick={handleSubmit}
-                    className="w-full bg-[#087747] hover:bg-[#06683D] disabled:opacity-50 text-white font-semibold py-3 px-4 rounded-xl shadow transition flex items-center justify-center space-x-2 text-xs cursor-pointer"
+                    className="button-primary w-full bg-[#126E4A] hover:bg-[#0D5638] disabled:opacity-50 text-white font-semibold py-3 px-4 rounded-xl transition flex items-center justify-center space-x-2 text-xs cursor-pointer"
                   >
                     {isSubmitting ? (
                       <>
@@ -557,7 +562,7 @@ export const CreateAdWizard: React.FC<CreateAdWizardProps> = ({
                       href={LEGAL_DOCUMENT_PATHS.personalDataPublicationConsent}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="font-medium text-[#0C8C50] underline"
+                      className="font-medium text-[#126E4A] underline"
                     >
                       согласие на распространение персональных данных
                     </a>.
@@ -614,7 +619,7 @@ export const CreateAdWizard: React.FC<CreateAdWizardProps> = ({
 
         {/* Wizard Footer Navigation */}
         {!moderationResult && (
-          <div className="p-4 border-t border-slate-100 flex items-center justify-between">
+          <div className="wizard-footer p-4 border-t border-slate-100 flex items-center justify-between">
             {step > 1 ? (
               <button
                 type="button"
@@ -632,7 +637,7 @@ export const CreateAdWizard: React.FC<CreateAdWizardProps> = ({
               <button
                 type="button"
                 onClick={validateAndNext}
-                className="px-6 py-2.5 rounded-xl bg-[#087747] hover:bg-[#06683D] text-white text-sm font-semibold flex items-center space-x-1.5 shadow-md shadow-emerald-700/20 transition cursor-pointer"
+                className="px-6 py-2.5 rounded-xl bg-[#126E4A] hover:bg-[#0D5638] text-white text-sm font-semibold flex items-center space-x-1.5 transition cursor-pointer"
               >
                 <span>Далее</span>
                 <ArrowRight className="w-4 h-4" />
