@@ -357,6 +357,80 @@ button:active {
   color: var(--ink-600);
 }
 
+.subscription-summary {
+  align-items: flex-start;
+  gap: 14px;
+}
+
+.subscription-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+}
+
+.subscription-icon svg {
+  width: 18px;
+  height: 18px;
+  stroke-width: 1.8;
+}
+
+.subscription-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.subscription-copy h2 {
+  font-size: 16px;
+  line-height: 1.2;
+}
+
+.subscription-copy p {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.subscription-actions {
+  margin-top: 2px;
+}
+
+.subscription-card .subscription-edit,
+.subscription-card .subscription-delete {
+  min-height: 40px;
+  height: 40px;
+  border-radius: 12px;
+}
+
+.subscription-card .subscription-edit {
+  flex: 1;
+  padding: 0 16px;
+  font-size: 14px;
+  font-weight: 600;
+  justify-content: center;
+}
+
+.subscription-card .subscription-edit svg {
+  width: 15px;
+  height: 15px;
+  stroke-width: 2.2;
+}
+
+.subscription-card .subscription-delete {
+  width: 40px;
+  padding: 0;
+  border: 1px solid #f0dcda;
+  color: var(--danger);
+  background: var(--danger-tint);
+  justify-content: center;
+}
+
+.subscription-card .subscription-delete svg {
+  width: 16px;
+  height: 16px;
+  stroke-width: 1.7;
+}
+
 .subscription-card button,
 .button-primary {
   min-height: 44px;
