@@ -337,33 +337,35 @@ export const MapView: React.FC<MapViewProps> = ({
             </button>
           </div>
         ) : !isSubMode ? (
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-xl bg-[#126E4A]/15 text-[#126E4A] flex items-center justify-center flex-shrink-0">
+          <div className="subscription-summary flex items-start gap-3">
+            <div className="subscription-icon w-8 h-8 rounded-xl bg-[#126E4A]/15 text-[#126E4A] flex items-center justify-center flex-shrink-0">
               <Bell className="w-4 h-4" />
             </div>
-            <div className="min-w-0 flex-1">
+            <div className="subscription-copy min-w-0 flex-1">
               <h2 className="text-sm font-bold text-slate-900 leading-tight">Гео-подписка</h2>
               <p className="text-[11px] text-slate-500 leading-snug whitespace-normal break-words">
                 Выберите область на карте и получите уведомление как только появится новое объявление
               </p>
+              <div className="subscription-actions flex gap-2">
+                <button
+                  onClick={toggleSubMode}
+                  className="subscription-edit bg-[#126E4A] hover:bg-[#0D5638] text-white text-xs font-semibold px-3 py-2 rounded-xl transition active:scale-95 cursor-pointer flex items-center gap-1.5"
+                >
+                  {geoSubscription?.isActive && <Check className="w-3.5 h-3.5" />}
+                  <span>{geoSubscription?.isActive ? 'Изменить' : 'Настроить'}</span>
+                </button>
+                {geoSubscription?.isActive && (
+                  <button
+                    onClick={onDeleteSubscription}
+                    title="Отключить подписку"
+                    aria-label="Отключить гео-подписку"
+                    className="subscription-delete bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 p-2 rounded-xl transition cursor-pointer flex-shrink-0"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
             </div>
-            <button
-              onClick={toggleSubMode}
-              className="bg-[#126E4A] hover:bg-[#0D5638] text-white text-xs font-semibold px-3 py-2 rounded-xl transition active:scale-95 cursor-pointer flex items-center gap-1.5 flex-shrink-0"
-            >
-              {geoSubscription?.isActive && <Check className="w-3.5 h-3.5" />}
-              <span>{geoSubscription?.isActive ? 'Изменить' : 'Настроить'}</span>
-            </button>
-            {geoSubscription?.isActive && (
-              <button
-                onClick={onDeleteSubscription}
-                title="Отключить подписку"
-                aria-label="Отключить гео-подписку"
-                className="bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 p-2 rounded-xl transition cursor-pointer flex-shrink-0"
-              >
-                <Trash2 className="w-4 h-4" />
-              </button>
-            )}
           </div>
         ) : (
           <>
