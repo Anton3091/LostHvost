@@ -800,12 +800,19 @@ button:active {
   }
 
   .profile-ad-card {
-    display: grid;
-    grid-template-columns: 84px minmax(0, 1fr);
+    display: flex;
+    flex-direction: column;
     align-items: start;
   }
 
+  .profile-ad-summary {
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+    gap: 16px;
+  }
+
   .profile-ad-card > div:last-child {
-    grid-column: 1 / -1;
+    width: 100%;
   }
 }
