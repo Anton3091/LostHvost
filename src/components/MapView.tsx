@@ -179,24 +179,23 @@ export const MapView: React.FC<MapViewProps> = ({
         dashArray: '6, 6'
       }).addTo(map);
 
-      // Draw Center Marker
-      const centerIcon = L.divIcon({
-        className: 'sub-center-pin',
-        html: `
-          <div style="background: #126E4A; width: 28px; height: 28px; border-radius: 50%; border: 3px solid white; display: flex; align-items: center; justify-content: center; color: white; box-shadow: 0 4px 12px rgba(16,22,20,0.2);">
-            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="white" stroke-width="2"><path d="M12 21s7-6.3 7-11a7 7 0 1 0-14 0c0 4.7 7 11 7 11z"/><circle cx="12" cy="10" r="2.4"/></svg>
-          </div>
-        `,
-        iconSize: [28, 28],
-        iconAnchor: [14, 14]
-      });
+      if (isSubMode) {
+        const centerIcon = L.divIcon({
+          className: 'sub-center-pin',
+          html: `
+            <div style="background: #126E4A; width: 28px; height: 28px; border-radius: 50%; border: 3px solid white; display: flex; align-items: center; justify-content: center; color: white; box-shadow: 0 4px 12px rgba(16,22,20,0.2);">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="white" stroke-width="2"><path d="M12 21s7-6.3 7-11a7 7 0 1 0-14 0c0 4.7 7 11 7 11z"/><circle cx="12" cy="10" r="2.4"/></svg>
+            </div>
+          `,
+          iconSize: [28, 28],
+          iconAnchor: [14, 14]
+        });
 
-      subMarkerLayer.current = L.marker([activeLat, activeLng], {
-        icon: centerIcon,
-        draggable: isSubMode
-      }).addTo(map);
+        subMarkerLayer.current = L.marker([activeLat, activeLng], {
+          icon: centerIcon,
+          draggable: true
+        }).addTo(map);
 
-      if (isSubMode && subMarkerLayer.current) {
         subMarkerLayer.current.on('dragend', (e: any) => {
           const latlng = e.target.getLatLng();
           setSubLat(latlng.lat);
@@ -231,8 +230,9 @@ export const MapView: React.FC<MapViewProps> = ({
       if (userGpsMarker.current) leafletMap.current.removeLayer(userGpsMarker.current);
       const gpsIcon = L.divIcon({
         className: 'pulse-gps-marker',
-        iconSize: [18, 18],
-        iconAnchor: [9, 9]
+        html: '<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="white" stroke-width="2.2"><path d="M12 21s7-6.3 7-11a7 7 0 1 0-14 0c0 4.7 7 11 7 11z"/><circle cx="12" cy="10" r="2.4"/></svg>',
+        iconSize: [22, 22],
+        iconAnchor: [11, 11]
       });
       userGpsMarker.current = L.marker([latitude, longitude], { icon: gpsIcon }).addTo(leafletMap.current);
       if (isSubMode) {
