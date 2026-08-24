@@ -23,3 +23,9 @@ test('manifest uses the current brand icon for installed PWA', () => {
     { src: '/losthvost.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
   ]);
 });
+
+test('плашка обновления располагается выше плавающей навигации', () => {
+  const main = fs.readFileSync(path.join(process.cwd(), 'src/main.tsx'), 'utf8');
+  assert.match(main, /bottom-\[calc\(7\.25rem\+env\(safe-area-inset-bottom\)\)\]/);
+  assert.doesNotMatch(main, /bottom-24/);
+});

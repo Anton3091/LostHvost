@@ -45,7 +45,7 @@ function PwaUpdatePrompt() {
 
   if (!isPwa || !registration) return null;
 
-  return <div className="fixed inset-x-4 bottom-24 z-[1000] mx-auto flex max-w-md items-center justify-between gap-3 rounded-2xl bg-slate-900 px-4 py-3 text-sm text-white shadow-xl" role="status">
+  return <div className="fixed inset-x-4 bottom-[calc(7.25rem+env(safe-area-inset-bottom))] z-[1000] mx-auto flex max-w-md items-center justify-between gap-3 rounded-2xl bg-slate-900 px-4 py-3 text-sm text-white shadow-xl" role="status">
     <span>{updateInProgress ? 'Обновление устанавливается…' : 'Доступно обновление приложения'}</span>
     <button type="button" disabled={updateInProgress} className="shrink-0 rounded-xl bg-white px-3 py-2 font-semibold text-slate-900 disabled:opacity-70" onClick={() => {
       const worker = registration.waiting;
