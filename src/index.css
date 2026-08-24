@@ -278,9 +278,10 @@ button:active {
 }
 
 .app-bottom-nav {
+  --app-nav-bottom: max(8px, calc(env(safe-area-inset-bottom) - 16px));
   left: 50%;
   right: auto;
-  bottom: calc(26px + env(safe-area-inset-bottom));
+  bottom: var(--app-nav-bottom);
   width: min(calc(100% - 40px), 520px);
   height: 64px;
   min-height: 64px;
@@ -302,9 +303,9 @@ button:active {
   position: absolute;
   z-index: -2;
   left: 50%;
-  bottom: calc(-26px - env(safe-area-inset-bottom));
+  bottom: calc(-1 * var(--app-nav-bottom));
   width: 100vw;
-  height: calc(110px + env(safe-area-inset-bottom));
+  height: calc(84px + var(--app-nav-bottom));
   transform: translateX(-50%);
   background: linear-gradient(to top, var(--canvas) 46%, rgba(245,247,245,0));
 }
@@ -455,12 +456,15 @@ button:active {
 }
 
 .subscription-card .subscription-delete {
+  display: inline-flex;
+  align-items: center;
   width: 40px;
   padding: 0;
   border: 1px solid #f0dcda;
   color: var(--danger);
   background: var(--danger-tint);
   justify-content: center;
+  line-height: 0;
 }
 
 .subscription-card .subscription-delete svg {

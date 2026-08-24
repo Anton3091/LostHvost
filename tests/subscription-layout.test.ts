@@ -13,5 +13,6 @@ test('действия гео-подписки расположены под о�
 test('компоненты гео-подписки соответствуют размерам макета', () => {
   assert.match(css, /\.subscription-icon \{\s*width: 40px;\s*height: 40px;/s);
   assert.match(css, /\.subscription-card \.subscription-edit,\s*\.subscription-card \.subscription-delete \{\s*min-height: 40px;\s*height: 40px;/s);
-  assert.match(css, /\.subscription-card \.subscription-delete \{\s*width: 40px;/s);
+  assert.match(css, /\.subscription-card \.subscription-delete \{\s*display: inline-flex;\s*align-items: center;\s*width: 40px;/s);
+  assert.match(css, /\.subscription-card \.subscription-delete \{[\s\S]*justify-content: center;[\s\S]*line-height: 0;/);
 });

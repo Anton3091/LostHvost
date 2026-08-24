@@ -52,7 +52,7 @@ test('в выборе типа и категории нет эмодзи', () =>
 });
 
 test('мобильная навигация повторяет плавающую панель макета', () => {
-  assert.match(css, /\.app-bottom-nav \{[\s\S]*bottom: calc\(26px \+ env\(safe-area-inset-bottom\)\);[\s\S]*height: 64px;[\s\S]*border-radius: 24px;/);
+  assert.match(css, /\.app-bottom-nav \{[\s\S]*--app-nav-bottom: max\(8px, calc\(env\(safe-area-inset-bottom\) - 16px\)\);[\s\S]*bottom: var\(--app-nav-bottom\);[\s\S]*height: 64px;[\s\S]*border-radius: 24px;/);
   assert.match(css, /\.app-create-button \{[\s\S]*width: 60px;[\s\S]*height: 60px;[\s\S]*border-radius: 22px;/);
 });
 
