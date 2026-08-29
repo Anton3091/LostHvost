@@ -6,6 +6,7 @@ services:
       context: .
       args:
         VITE_YANDEX_SMARTCAPTCHA_SITE_KEY: ${SMARTCAPTCHA_CLIENT_KEY}
+        VITE_CARTO_BASEMAP_KEY: ${CARTO_BASEMAP_KEY}
     restart: unless-stopped
     env_file: .env
     volumes:
