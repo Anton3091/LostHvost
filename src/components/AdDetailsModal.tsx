@@ -319,7 +319,7 @@ export const AdDetailsModal: React.FC<AdDetailsModalProps> = ({
                 Скопировать ссылку
               </button>
 
-              {phone ? (
+              {ad.hasPhone && (phone ? (
                 <div className="liquid-glass-card border border-emerald-500/30 p-4 rounded-3xl text-center space-y-3">
                   <p className="text-xs text-emerald-700 font-semibold">
                     {ad.contactName}
@@ -343,7 +343,7 @@ export const AdDetailsModal: React.FC<AdDetailsModalProps> = ({
                   <Phone className="w-4 h-4" />
                   <span>Показать контакты</span>
                 </button>
-              )}
+              ))}
             </div>
 
             {/* Discretely placed Complaint Option */}

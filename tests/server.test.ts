@@ -6,6 +6,7 @@ import path from 'node:path';
 import type { AddressInfo } from 'node:net';
 import type { Express } from 'express';
 import type { Server } from 'node:http';
+import Database from 'better-sqlite3';
 
 const dataDir = mkdtempSync(path.join(os.tmpdir(), 'losthvost-test-'));
 process.env.NODE_ENV = 'test';
@@ -101,6 +102,44 @@ test('запрет индексации политики не применяет
 
 test('срок публикации объявления составляет 14 суток', () => {
   assert.equal(publicationDays, 14);
+});
+
+test('объявление без телефона не предлагает запрашивать контакт', async () => {
+  const database = new Database(path.join(dataDir, 'losthvost.sqlite'));
+  const createdAt = new Date().toISOString();
+  const expiresAt = new Date(Date.now() + 86400000).toISOString();
+  database.prepare("INSERT INTO users(id,email,name,role,auth_provider,created_at) VALUES(?,?,?,'user','email',?)")
+    .run('user_without_phone', 'without-phone@example.com', 'LostHvost', createdAt);
+  database.prepare("INSERT INTO ads(id,user_id,type,category,photos,pet_name,contact_name,phone,description,lat,lng,city,created_at,expires_at,status) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,'active')")
+    .run('ad_without_phone', 'user_without_phone', 'found', 'cat', '[]', '', 'LostHvost', '', 'Найдена кошка', 55.75, 37.62, 'Москва', createdAt, expiresAt);
+  database.close();
+
+  const listing = await request('/api/ads/ad_without_phone');
+  assert.equal(listing.status, 200);
+  const payload = await listing.json() as { ad: { hasPhone: boolean; phone?: string } };
+  assert.equal(payload.ad.hasPhone, false);
+  assert.equal(payload.ad.phone, undefined);
+
+  const registration = await request('/api/auth/register', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      captchaToken: 'test-captcha',
+      email: 'contact-check@example.com',
+      password: 'correct horse battery staple',
+      name: 'Проверка контакта'
+    })
+  });
+  const sessionCookie = (registration.headers.get('set-cookie') || '').match(/losthvost_session=[^;]+/)?.[0];
+  assert.ok(sessionCookie);
+
+  const phoneResponse = await request('/api/ads/ad_without_phone/phone', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', cookie: sessionCookie },
+    body: JSON.stringify({ captchaToken: 'test-captcha' })
+  });
+  assert.equal(phoneResponse.status, 404);
+  assert.deepEqual(await phoneResponse.json(), { error: 'Контакты для этого объявления не указаны' });
 });
 
 test('защищённый маршрут требует авторизацию', async () => {

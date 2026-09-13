@@ -49,6 +49,7 @@ export interface PublicAdItem {
   type: AdType;
   category: AdCategory;
   photos: string[];
+  hasPhone: boolean;
   petName?: string;
   contactName: string;
   description: string;
